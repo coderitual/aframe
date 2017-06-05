@@ -177,7 +177,7 @@ additional properties:
 > information into a texture][light-baking] before importing assets into
 > A-Frame.
 
-- **1. Create at least one light** with `castShadows: true`. Three light types
+- **1. Create at least one light** with `castShadow: true`. Three light types
   support shadows (`point`, `spot`, and `directional`). Of the three,
   `directional` lights will have the best performance. Combining an ambient
   light (without shadows) and a directional light (with shadows) is a good
@@ -203,7 +203,8 @@ cast or receive shadows.
   receive shadows.
 
 ```html
-<a-gltf-model src="tree.gltf" shadow="receive: false"></a-gltf-model>
+<a-gltf-model src="tree.gltf" shadow="cast: true"></a-gltf-model>
+<a-circle id="ground" radius="10" rotation="-90 0 0" shadow-"receive: true"></a-circle>
 ```
 
 - **3. Adjust the shadow camera** position and frustum (`shadowCameraTop`,
