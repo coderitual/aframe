@@ -431,6 +431,46 @@ suite('a-entity', function () {
         baz: 'url(test.jpg)'
       });
     });
+
+    test('merges updates with previous data', function (done) {
+      var el = this.el;
+      el.addEventListener('child-attached', evt => {
+        el = evt.detail.el;
+        el.addEventListener('loaded', evt => {
+          var geometry;
+
+          assert.shallowDeepEqual(el.components.geometry.attrValue, {width: 5});
+          assert.shallowDeepEqual(el.components.geometry.previousAttrValue, {});
+
+          // First setAttribute.
+          el.setAttribute('geometry', {depth: 10, height: 20});
+          geometry = el.getAttribute('geometry');
+          assert.equal(geometry.depth, 10);
+          assert.equal(geometry.height, 20);
+          assert.equal(geometry.width, 5, 'First setAttribute');
+          assert.shallowDeepEqual(el.components.geometry.attrValue, {
+            depth: 10,
+            height: 20,
+            width: 5
+          });
+          assert.shallowDeepEqual(el.components.geometry.previousAttrValue, {width: 5});
+
+          // Second setAttribute.
+          el.setAttribute('geometry', {depth: 20, height: 10});
+          geometry = el.getAttribute('geometry');
+          assert.shallowDeepEqual(el.components.geometry.attrValue, {
+            depth: 20,
+            height: 10,
+            width: 5
+          });
+          assert.equal(geometry.width, 5, 'Second setAttribute');
+          done();
+        });
+      });
+
+      // Initial data.
+      el.innerHTML = '<a-entity geometry="primitive: box; width: 5">';
+    });
   });
 
   suite('flushToDOM', function () {
@@ -1007,6 +1047,51 @@ suite('a-entity', function () {
       assert.ok(el.components.sound__2);
       assert.ok(el.components.sound__1 instanceof components.sound.Component);
       assert.ok(el.components.sound__2 instanceof components.sound.Component);
+    });
+
+    test('waits for DOM data to init before setAttribute data', function (done) {
+      // Test component.
+      AFRAME.registerComponent('test', {
+        schema: {
+          foo: {default: 5},
+          bar: {default: 'red'},
+          qux: {default: true}
+        },
+
+        init: function () {
+          var data = this.data;
+          assert.equal(data.foo, 10);
+          assert.equal(data.bar, 'red');
+          assert.equal(data.qux, true);
+        },
+
+        update: function (oldData) {
+          var data = this.data;
+          if (Object.keys(oldData).length) {
+            // Second update via setAttribute.
+            assert.equal(data.foo, 10);
+            assert.equal(data.bar, 'orange');
+            assert.equal(data.qux, true);
+            delete AFRAME.components['test-setter'];
+            done();
+          } else {
+            // First update via initialization.
+            assert.equal(data.foo, 10);
+            assert.equal(data.bar, 'red');
+            assert.equal(data.qux, true);
+          }
+        }
+      });
+
+      // Component that will do the setAttribute, without dependency.
+      AFRAME.registerComponent('test-setter', {
+        init: function () {
+          this.el.setAttribute('test', {bar: 'orange'});
+        }
+      });
+
+      // Create the entity.
+      this.el.innerHTML = '<a-entity test-setter test="foo: 10">';
     });
   });
 
