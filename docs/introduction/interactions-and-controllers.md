@@ -125,7 +125,7 @@ For example, to make an entity visible when it's hovered over or looked at. The
 cursor component provides the `mouseenter` event:
 
 ```html
-<a-entity event-set__makevisible="_event: mouseenter; visible: false">
+<a-entity event-set__makevisible="_event: mouseenter; visible: true">
 ```
 
 If we want to change the color of a box on hover and restore it when no longer
@@ -544,7 +544,7 @@ of the laser will be truncated.
 [gaze]: #gaze-based-interactions-with-cursor-component
 
 Then handling events and interactions is the exact same as [gaze-based
-interactions with the cursor component]. Refer to the section above!
+interactions with the cursor component][gaze] . Refer to the section above!
 
 ## Adding Room Scale Interactions for Controllers
 

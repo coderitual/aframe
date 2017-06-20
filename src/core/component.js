@@ -35,6 +35,7 @@ var Component = module.exports.Component = function (el, attrValue, id) {
   this.el = el;
   this.id = id;
   this.attrName = this.name + (id ? '__' + id : '');
+  this.initialized = false;
   this.el.components[this.attrName] = this;
   // Last value passed to updateProperties.
   this.previousAttrValue = undefined;
@@ -163,7 +164,6 @@ Component.prototype = {
     var attrValue = this.parseAttrValueForCache(value);
     var isSinglePropSchema = isSingleProp(this.schema);
     var property;
-
     if (value === undefined) { return; }
 
     // Merge new data with previous `attrValue` if updating and not clobbering.
@@ -353,7 +353,7 @@ Component.prototype = {
       data = typeof previousData === 'object' ? utils.extend({}, previousData) : {};
       Object.keys(schema).forEach(function applyDefault (key) {
         var defaultValue = schema[key].default;
-        if (data[key]) { return; }
+        if (data[key] !== undefined) { return; }
         data[key] = defaultValue && defaultValue.constructor === Object
           ? utils.extend({}, defaultValue)
           : defaultValue;

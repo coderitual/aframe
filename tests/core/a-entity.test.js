@@ -309,6 +309,28 @@ suite('a-entity', function () {
       assert.equal(material.roughness, 0.75);
     });
 
+    test('can update a single component attribute with a string', function () {
+      var el = this.el;
+      var material;
+      el.setAttribute('material', 'color: #F0F; roughness: 0.25');
+      assert.equal(el.getAttribute('material').roughness, 0.25);
+      el.setAttribute('material', 'roughness: 0.75');
+      material = el.getAttribute('material');
+      assert.equal(material.color, '#F0F');
+      assert.equal(material.roughness, 0.75);
+    });
+
+    test('can clobber component attributes with a string and flag', function () {
+      var el = this.el;
+      var material;
+      el.setAttribute('material', 'color: #F0F; roughness: 0.25');
+      el.setAttribute('material', 'color: #000', true);
+      material = el.getAttribute('material');
+      assert.equal(material.color, '#000');
+      assert.equal(material.roughness, 0.5);
+      assert.equal(el.getDOMAttribute('material').roughness, undefined);
+    });
+
     test('transforms object to string before setting on DOM', function () {
       var el = this.el;
       var positionObj = {x: 10, y: 20, z: 30};
@@ -580,6 +602,15 @@ suite('a-entity', function () {
         assert.equal(el.sceneEl.behaviors.tock.indexOf(el.components.test), -1);
         done();
       });
+    });
+
+    test('handles detaching with with uninitialized components', function () {
+      var box = document.createElement('a-entity');
+      var el = this.el;
+      box.setAttribute('geometry', {primitive: 'box'});
+      el.sceneEl.appendChild(box);
+      el.sceneEl.removeChild(box);
+      // Just check it doesn't error.
     });
   });
 
@@ -1107,6 +1138,26 @@ suite('a-entity', function () {
       el.removeAttribute('look-controls');
       assert.equal(sceneEl.behaviors.tick.indexOf(component), -1);
     });
+
+    test('waits for component to initialize', function (done) {
+      var box = document.createElement('a-entity');
+      var component;
+      var removeSpy;
+
+      box.setAttribute('geometry', {primitive: 'box'});
+      component = box.components.geometry;
+      removeSpy = this.sinon.stub(component, 'remove', () => {});
+
+      box.removeComponent('geometry');
+      assert.notOk(removeSpy.called);
+
+      component.initialized = true;
+      box.emit('componentinitialized', {name: 'geometry'});
+      setTimeout(() => {
+        assert.ok(removeSpy.called);
+        done();
+      });
+    });
   });
 
   suite('updateComponent', function () {
@@ -1133,25 +1184,6 @@ suite('a-entity', function () {
       assert.equal(el.getAttribute('material').color, 'red');
       el.updateComponent('material', null);
       assert.equal(el.components.material, undefined);
-    });
-  });
-
-  suite('updateComponentAttribute', function () {
-    test('initialize a component', function () {
-      var el = this.el;
-      assert.equal(el.components.material, undefined);
-      el.updateComponentProperty('material', 'color', 'blue');
-      assert.equal(el.getAttribute('material').color, 'blue');
-    });
-
-    test('update a property of an existing component', function () {
-      var el = this.el;
-      var component = new components.material.Component(el, {color: 'red'});
-      el.components.material = component;
-      assert.equal(el.getAttribute('material').color, 'red');
-      el.updateComponentProperty('material', 'color', 'blue');
-      assert.equal(component, el.components.material);
-      assert.equal(el.getAttribute('material').color, 'blue');
     });
   });
 

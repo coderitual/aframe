@@ -4,8 +4,8 @@ var debug = utils.debug;
 var error = debug('A-Frame:error');
 var warn = debug('A-Frame:warn');
 
-if (document.currentScript && document.currentScript.parentNode !== document.head &&
-    !window.debug) {
+if (window.document.currentScript && window.document.currentScript.parentNode !==
+    window.document.head && !window.debug) {
   warn('Put the A-Frame <script> tag in the <head> of the HTML *before* the scene to ' +
        'ensure everything for A-Frame is properly registered before they are used from ' +
        'HTML.');
@@ -24,7 +24,7 @@ if (window.location.protocol === 'file:') {
 window.Promise = window.Promise || require('promise-polyfill');
 
 // Check before the polyfill runs.
-window.hasNativeWebVRImplementation = !!navigator.getVRDisplays || !!navigator.getVRDevices;
+window.hasNativeWebVRImplementation = !!window.navigator.getVRDisplays || !!window.navigator.getVRDevices;
 
 window.WebVRConfig = window.WebVRConfig || {
   BUFFER_SCALE: 1,
@@ -36,7 +36,7 @@ window.WebVRConfig = window.WebVRConfig || {
 
 // Workaround for iOS Safari canvas sizing issues in stereo (webvr-polyfill/issues/102).
 // Only for iOS on versions older than 10.
-if (utils.device.isIOSOlderThan10(navigator.userAgent)) {
+if (utils.device.isIOSOlderThan10(window.navigator.userAgent)) {
   window.WebVRConfig.BUFFER_SCALE = 1 / window.devicePixelRatio;
 }
 
@@ -83,7 +83,7 @@ require('./core/a-mixin');
 require('./extras/components/');
 require('./extras/primitives/');
 
-console.log('A-Frame Version: 0.5.0 (Date 10-06-2017, Commit #2920bbb)');
+console.log('A-Frame Version: 0.5.0 (Date 19-06-2017, Commit #4f488cc)');
 console.log('three Version:', pkg.dependencies['three']);
 console.log('WebVR Polyfill Version:', pkg.dependencies['webvr-polyfill']);
 

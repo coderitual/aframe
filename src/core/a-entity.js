@@ -436,6 +436,16 @@ var proto = Object.create(ANode.prototype, {
       component = this.components[name];
       if (!component) { return; }
 
+      // Wait for component to initialize.
+      if (!component.initialized) {
+        this.addEventListener('componentinitialized', function tryRemoveLater (evt) {
+          if (evt.detail.name !== name) { return; }
+          this.removeComponent(name);
+          this.removeEventListener('componentinitialized', tryRemoveLater);
+        });
+        return;
+      }
+
       component.pause();
       component.remove();
       delete this.components[name];
@@ -443,7 +453,8 @@ var proto = Object.create(ANode.prototype, {
         id: component.id,
         name: name
       });
-    }
+    },
+    writable: window.debug
   },
 
   /**
@@ -531,21 +542,6 @@ var proto = Object.create(ANode.prototype, {
 
       // Component not yet initialized. Initialize component.
       this.initComponent(attr, attrValue, false);
-    }
-  },
-
-  /**
-   * Updates one property of the component
-   *
-   * @param {string} name - Component name
-   * @param {string} property - Component property name
-   * @param {any} propertyValue - New property value
-   */
-  updateComponentProperty: {
-    value: function (name, property, propertyValue) {
-      var attrValue = {};
-      attrValue[property] = propertyValue;
-      this.updateComponent(name, attrValue);
     }
   },
 
@@ -676,13 +672,14 @@ var proto = Object.create(ANode.prototype, {
    * 4. Set a value for a single-property component, mixin, or normal HTML attribute.
    *
    * @param {string} attrName - Component or attribute name.
-   * @param {string|object} arg1 - Can be a property name or object of properties.
-   * @param {string|bool} arg2 - Can be a value, or boolean indicating whether to update or
-   *   replace.
+   * @param {*} arg1 - Can be a value, property name, CSS-style property string, or
+   *   object of properties.
+   * @param {*|bool} arg2 - If arg1 is a property name, this should be a value. Otherwise,
+   *   it is a boolean indicating whether to clobber previous values (defaults to false).
    */
   setAttribute: {
     value: function (attrName, arg1, arg2) {
-      var arg1Type = typeof arg1;
+      var newAttrValue;
       var clobber;
       var componentName;
       var delimiterIndex;
@@ -703,29 +700,31 @@ var proto = Object.create(ANode.prototype, {
                              window.HTMLElement.prototype.getAttribute.call(this, attrName));
       }
 
-      // Determine which type of setAttribute to call based on the types of the arguments.
-      if (arg1Type === 'string' && typeof arg2 !== 'undefined') {
-        singlePropertyUpdate(this, attrName, arg1, arg2);
+      // Determine new attributes from the arguments
+      if (typeof arg2 !== 'undefined' &&
+          typeof arg1 === 'string' &&
+          arg1.length > 0 &&
+          typeof utils.styleParser.parse(arg1) === 'string') {
+        // Update a single property of a multi-property component
+        newAttrValue = {};
+        newAttrValue[arg1] = arg2;
+        clobber = false;
       } else {
-        // Object update.
-        clobber = arg1Type !== 'object' || (arg1Type === 'object' && arg2 === true);
-        this.updateComponent(attrName, arg1, clobber);
+        // Update with a value, object, or CSS-style property string, with the possiblity
+        // of clobbering previous values.
+        newAttrValue = arg1;
+        clobber = (arg2 === true);
       }
+
+      // Update component
+      this.updateComponent(attrName, newAttrValue, clobber);
 
       // In debug mode, write component data up to the DOM.
       isDebugMode = this.sceneEl && this.sceneEl.getAttribute('debug');
       if (isDebugMode) { this.components[attrName].flushToDOM(); }
 
       /**
-       * Just update one of the component properties.
-       * >> setAttribute('foo', 'bar', 'baz')
-       */
-      function singlePropertyUpdate (el, componentName, propName, propertyValue) {
-        el.updateComponentProperty(componentName, propName, propertyValue);
-      }
-
-      /**
-       * Just update one of the component properties.
+       * Update a non-component attribute.
        * >> setAttribute('id', 'myEntity')
        */
       function normalSetAttribute (el, attrName, value) {
