@@ -77,6 +77,7 @@ suite('vive-controls', function () {
       controlsSystem.controllers = component.controllersWhenPresent;
 
       // Mock looked before.
+      component.controllerEventsActive = true;
       component.controllerPresent = true;
 
       component.checkIfControllerPresent();
@@ -94,6 +95,7 @@ suite('vive-controls', function () {
       controlsSystem.controllers = [];
 
       // Mock looked before.
+      component.controllerEventsActive = true;
       component.controllerPresent = true;
 
       component.checkIfControllerPresent();
@@ -316,6 +318,16 @@ suite('vive-controls', function () {
       });
       component.data.model = true;
       component.injectTrackedControls();
+    });
+  });
+
+  suite('event listener', function () {
+    test('toggles controllerEventsActive', function () {
+      component.controllerEventsActive = false;
+      component.addEventListeners();
+      assert.ok(component.controllerEventsActive);
+      component.removeEventListeners();
+      assert.notOk(component.controllerEventsActive);
     });
   });
 });
