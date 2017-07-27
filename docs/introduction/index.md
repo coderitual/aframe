@@ -15,6 +15,39 @@ installation: true
 
 ![A-Frame](https://cloud.githubusercontent.com/assets/674727/25392020/6f011d10-298c-11e7-845e-c3c5baebd14d.jpg)
 
+## Getting Started
+
+[glitch]: http://glitch.com/~aframe
+
+A-Frame can be developed from a plain HTML file without having to install
+anything! A great way to try out A-Frame is to **[remix the starter example on
+Glitch][glitch]**, an online code editor that instantly hosts and deploys for
+free. Or create an `.html` file and include A-Frame in the `<head>`:
+
+```html
+<html>
+  <head>
+    <script src="https://aframe.io/releases/0.6.1/aframe.min.js"></script>
+  </head>
+  <body>
+    <a-scene>
+      <a-box position="-1 0.5 -3" rotation="0 45 0" color="#4CC3D9"></a-box>
+      <a-sphere position="0 1.25 -5" radius="1.25" color="#EF2D5E"></a-sphere>
+      <a-cylinder position="1 0.75 -3" radius="0.5" height="1.5" color="#FFC65D"></a-cylinder>
+      <a-plane position="0 0 -4" rotation="-90 0 0" width="4" height="4" color="#7BC8A4"></a-plane>
+      <a-sky color="#ECECEC"></a-sky>
+    </a-scene>
+  </body>
+</html>
+```
+
+[Installation]: ./installation.md
+[school]: https://aframe.io/school/
+
+The [Installation] page provides more options for getting started with A-Frame.
+To get started learning A-Frame, check out [A-Frame School][school] for
+visual step-by-step lessons to complement the documentation.
+
 ## What is A-Frame?
 
 :a:-Frame is a web framework for building virtual reality (VR) experiences. As
@@ -31,8 +64,8 @@ composable structure to [three.js].
 A-Frame supports most VR headsets such as Vive, Rift, Daydream, GearVR,
 Cardboard, and can even be used for augmented reality. Although A-Frame
 supports the whole spectrum, A-Frame aims to define fully immersive
-interactive VR experiences that go beyond basic 360&deg; content, making 
-full use of positional tracking and controllers. The Mozilla VR team is 
+interactive VR experiences that go beyond basic 360&deg; content, making
+full use of positional tracking and controllers. The Mozilla VR team is
 currently using A-Frame as the foundation for a Metaverse-in-progress.
 
 <div class="docs-introduction-examples">
@@ -55,39 +88,6 @@ currently using A-Frame as the foundation for a Metaverse-in-progress.
     <img alt="360 Image Gallery" target="_blank" src="https://cloud.githubusercontent.com/assets/674727/24572552/72f81bec-162e-11e7-9851-037d0280abdb.gif" height="190" width="32%">
   </a>
 </div>
-
-## Getting Started
-
-[glitch]: http://glitch.com/~aframe
-
-A-Frame can be developed from a plain HTML file without having to install
-anything! A great way to try out A-Frame is to **[remix the starter example on
-Glitch][glitch]**, an online code editor that instantly hosts and deploys for
-free. Or create an `.html` file and include A-Frame in the `<head>`:
-
-```html
-<html>
-  <head>
-    <script src="https://aframe.io/releases/0.6.0/aframe.min.js"></script>
-  </head>
-  <body>
-    <a-scene>
-      <a-box position="-1 0.5 -3" rotation="0 45 0" color="#4CC3D9"></a-box>
-      <a-sphere position="0 1.25 -5" radius="1.25" color="#EF2D5E"></a-sphere>
-      <a-cylinder position="1 0.75 -3" radius="0.5" height="1.5" color="#FFC65D"></a-cylinder>
-      <a-plane position="0 0 -4" rotation="-90 0 0" width="4" height="4" color="#7BC8A4"></a-plane>
-      <a-sky color="#ECECEC"></a-sky>
-    </a-scene>
-  </body>
-</html>
-```
-
-[Installation]: ./installation.md
-[school]: https://aframe.io/school/
-
-The [Installation] page provides more options for getting started with A-Frame.
-To get started learning A-Frame, check out [A-Frame School][school] for
-visual step-by-step lessons to complement the documentation.
 
 ## Features
 
@@ -131,7 +131,7 @@ clone built in A-Frame that runs like native (90+ FPS).
 
 :hammer: **Tool Agnostic**: Since the Web was built on the notion of HTML,
 A-Frame is compatible with most libraries, frameworks, and tools including
-[React], [Preact], [Vue.js], [Angular], [d3.js], [Ember.js], [jQuery].
+[React], [Preact], [Vue.js], [d3.js], [Ember.js], [jQuery].
 
 [inspector]: ./visual-inspector-and-dev-tools.md
 

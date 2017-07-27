@@ -64948,7 +64948,7 @@ module.exports={
     "lint": "semistandard -v | snazzy",
     "lint:fix": "semistandard --fix",
     "precommit": "npm run lint",
-    "prerelease": "node scripts/release.js 0.6.0 0.6.1",
+    "prerelease": "node scripts/release.js 0.5.0 0.6.0",
     "start": "npm run dev",
     "test": "karma start ./tests/karma.conf.js",
     "test:docs": "node scripts/docsLint.js",
@@ -67694,19 +67694,18 @@ var shaderNames = shader.shaderNames;
  */
 module.exports.Component = registerComponent('material', {
   schema: {
-    alphaTest: {default: 0.0, min: 0.0, max: 1.0},
     depthTest: {default: true},
     depthWrite: {default: true},
+    alphaTest: {default: 0.0, min: 0.0, max: 1.0},
     flatShading: {default: false},
-    npot: {default: false},
-    offset: {type: 'vec2', default: {x: 0, y: 0}},
     opacity: {default: 1.0, min: 0.0, max: 1.0},
-    repeat: {type: 'vec2', default: {x: 1, y: 1}},
     shader: {default: 'standard', oneOf: shaderNames},
     side: {default: 'front', oneOf: ['front', 'back', 'double']},
     transparent: {default: false},
-    vertexColors: {type: 'string', default: 'none', oneOf: ['face', 'vertex']},
-    visible: {default: true}
+    visible: {default: true},
+    offset: {type: 'vec2', default: {x: 0, y: 0}},
+    repeat: {type: 'vec2', default: {x: 1, y: 1}},
+    npot: {default: false}
   },
 
   init: function () {
@@ -67724,7 +67723,7 @@ module.exports.Component = registerComponent('material', {
       this.updateShader(data.shader);
     }
     this.shader.update(this.data);
-    this.updateMaterial(oldData);
+    this.updateMaterial();
   },
 
   updateSchema: function (data) {
@@ -67779,32 +67778,25 @@ module.exports.Component = registerComponent('material', {
     this.updateSchema(data);
   },
 
-  /**
-   * Set and update base material properties.
-   * Set `needsUpdate` when needed.
-   */
-  updateMaterial: function (oldData) {
+  updateMaterial: function () {
     var data = this.data;
     var material = this.material;
-
-    // Base material properties.
-    material.alphaTest = data.alphaTest;
+    var needsUpdate = false;
+    var side = parseSide(data.side);
+    if (material.side === THREE.DoubleSide && side !== THREE.DoubleSide ||
+      material.side !== THREE.DoubleSide && side === THREE.DoubleSide) {
+      needsUpdate = true;
+    }
+    material.side = side;
+    material.opacity = data.opacity;
+    material.transparent = data.transparent !== false || data.opacity < 1.0;
     material.depthTest = data.depthTest !== false;
     material.depthWrite = data.depthWrite !== false;
-    material.opacity = data.opacity;
     material.shading = data.flatShading ? THREE.FlatShading : THREE.SmoothShading;
-    material.side = parseSide(data.side);
-    material.transparent = data.transparent !== false || data.opacity < 1.0;
-    material.vertexColors = parseVertexColors(data.vertexColors);
     material.visible = data.visible;
-
-    // Check if material needs update.
-    if (Object.keys(oldData).length &&
-        (oldData.alphaTest !== data.alphaTest ||
-         oldData.side !== data.side ||
-         oldData.vertexColors !== data.vertexColors)) {
-      material.needsUpdate = true;
-    }
+    if (data.alphaTest !== material.alphaTest) { needsUpdate = true; }
+    material.alphaTest = data.alphaTest;
+    if (needsUpdate) { material.needsUpdate = true; }
   },
 
   /**
@@ -67837,7 +67829,7 @@ module.exports.Component = registerComponent('material', {
 });
 
 /**
- * Return a three.js constant determining which material face sides to render
+ * Returns a three.js constant determining which material face sides to render
  * based on the side parameter (passed as a component property).
  *
  * @param {string} [side=front] - `front`, `back`, or `double`.
@@ -67854,23 +67846,6 @@ function parseSide (side) {
     default: {
       // Including case `front`.
       return THREE.FrontSide;
-    }
-  }
-}
-
-/**
- * Return a three.js constant determining vertex coloring.
- */
-function parseVertexColors (coloring) {
-  switch (coloring) {
-    case 'face': {
-      return THREE.FaceColors;
-    }
-    case 'vertex': {
-      return THREE.VertexColors;
-    }
-    default: {
-      return THREE.NoColors;
     }
   }
 }
@@ -76578,7 +76553,7 @@ _dereq_('./core/a-mixin');
 _dereq_('./extras/components/');
 _dereq_('./extras/primitives/');
 
-console.log('A-Frame Version: 0.6.1 (Date 27-07-2017, Commit #b1b6c62)');
+console.log('A-Frame Version: 0.6.1 (Date 19-07-2017, Commit #a4b91bc)');
 console.log('three Version:', pkg.dependencies['three']);
 console.log('WebVR Polyfill Version:', pkg.dependencies['webvr-polyfill']);
 
@@ -77022,8 +76997,6 @@ module.exports.Shader = registerShader('standard', {
     displacementBias: {default: 0.5},
     displacementTextureOffset: {type: 'vec2'},
     displacementTextureRepeat: {type: 'vec2', default: {x: 1, y: 1}},
-    emissive: {type: 'color', default: '#000'},
-    emissiveIntensity: {default: 1},
     envMap: {default: ''},
 
     fog: {default: true},
@@ -77145,8 +77118,6 @@ module.exports.Shader = registerShader('standard', {
 function getMaterialData (data) {
   var newData = {
     color: new THREE.Color(data.color),
-    emissive: new THREE.Color(data.emissive),
-    emissiveIntensity: data.emissiveIntensity,
     fog: data.fog,
     metalness: data.metalness,
     roughness: data.roughness,
@@ -77558,15 +77529,14 @@ module.exports.System = registerSystem('light', {
     if (this.userDefinedLights || this.defaultLights || !this.data.defaultLightsEnabled) {
       return;
     }
-
     ambientLight = document.createElement('a-entity');
+    directionalLight = document.createElement('a-entity');
     ambientLight.setAttribute('light', {color: '#BBB', type: 'ambient'});
     ambientLight.setAttribute(DEFAULT_LIGHT_ATTR, '');
     ambientLight.setAttribute(constants.AFRAME_INJECTED, '');
     sceneEl.appendChild(ambientLight);
 
-    directionalLight = document.createElement('a-entity');
-    directionalLight.setAttribute('light', {color: '#FFF', intensity: 0.6, castShadow: true});
+    directionalLight.setAttribute('light', {color: '#FFF', intensity: 0.6});
     directionalLight.setAttribute('position', {x: -0.5, y: 1, z: 1});
     directionalLight.setAttribute(DEFAULT_LIGHT_ATTR, '');
     directionalLight.setAttribute(constants.AFRAME_INJECTED, '');

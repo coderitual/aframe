@@ -185,6 +185,7 @@ For 360&deg; images, search for [equirectangular images on Flickr][flickr].
 
 For 3D models, check out:
 
+- [Google Blocks](https://vr.google.com/objects)
 - [Sketchfab](https://sketchfab.com)
 - [Clara.io](http://clara.io)
 - [Archive3D](http://archive3d.net)
@@ -208,7 +209,7 @@ to serve, but that is against their terms of service.
 Browsers provide the ability to go from WebVR page to WebVR page via the
 `vrdisplayactivate` event described in the WebVR specification. Currently, not
 all browsers implement this. Firefox with WebVR implements this. A link
-component for link traversal will be released with A-Frame 0.6.0:
+component for link traversal was released with A-Frame 0.6.1:
 
 ```html
 <a-entity link="on: click; href: https://aframe-aincraft.glitch.me"></a-entity>

@@ -20,7 +20,7 @@ cursor for all controllers.
 
 The cursor component listens to events and keeps state on what's being hovered
 and pressed in order to provide `mousedown`, `mouseup`, `mouseenter`,
-`mouseleave`, and `click` events. We name use the `mouse` name to mimic
+`mouseleave`, and `click` events. We use the name `mouse` to mimic
 traditional web development for now. Under the hood, the cursor component uses
 the `raycaster-intersected` and `raycaster-intersection-cleared` events,
 capturing the closest visible intersected entity.
@@ -82,6 +82,7 @@ AFRAME.registerComponent('cursor-listener', {
 | downEvents  | Array of additional events on the entity to *listen* to for triggering `mousedown` (e.g., `triggerdown` for vive-controls).  | []                               |
 | fuse        | Whether cursor is fuse-based.                                                                                              | false on desktop, true on mobile |
 | fuseTimeout | How long to wait (in milliseconds) before triggering a fuse-based click event.                                             | 1500                             |
+| rayOrigin     | Where the intersection ray is cast from (i.e.,entity or mouse) | entity
 | upEvents    | Array of additional events on the entity to *listen* to for triggering `mouseup` (e.g., `trackpadup` for daydream-controls). | []                               |
 
 To further customize the cursor component, we configure the cursor's dependency
