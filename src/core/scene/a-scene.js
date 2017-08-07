@@ -55,6 +55,7 @@ module.exports.AScene = registerElement('a-scene', {
         this.object3D = new THREE.Scene();
         this.render = bind(this.render, this);
         this.systems = {};
+        this.systemNames = [];
         this.time = 0;
         this.init();
       }
@@ -62,7 +63,7 @@ module.exports.AScene = registerElement('a-scene', {
 
     init: {
       value: function () {
-        this.behaviors = { tick: [], tock: [] };
+        this.behaviors = {tick: [], tock: []};
         this.hasLoaded = false;
         this.isPlaying = false;
         this.originalHTML = this.innerHTML;
@@ -141,6 +142,7 @@ module.exports.AScene = registerElement('a-scene', {
       value: function (name) {
         if (this.systems[name]) { return; }
         this.systems[name] = new systems[name](this);
+        this.systemNames.push(name);
       }
     },
 
@@ -305,8 +307,10 @@ module.exports.AScene = registerElement('a-scene', {
      */
     onVRPresentChange: {
       value: function (evt) {
+        // Polyfill places display inside the detail property
+        var display = evt.display || evt.detail.display;
         // Entering VR.
-        if (evt.display.isPresenting) {
+        if (display.isPresenting) {
           this.enterVR(true);
           return;
         }
@@ -507,20 +511,23 @@ module.exports.AScene = registerElement('a-scene', {
      */
     tick: {
       value: function (time, timeDelta) {
+        var i;
         var systems = this.systems;
+
         // Animations.
         TWEEN.update();
 
         // Components.
-        this.behaviors.tick.forEach(function (component) {
-          if (!component.el.isPlaying) { return; }
-          component.tick(time, timeDelta);
-        });
+        for (i = 0; i < this.behaviors.tick.length; i++) {
+          if (!this.behaviors.tick[i].el.isPlaying) { continue; }
+          this.behaviors.tick[i].tick(time, timeDelta);
+        }
+
         // Systems.
-        Object.keys(systems).forEach(function (key) {
-          if (!systems[key].tick) { return; }
-          systems[key].tick(time, timeDelta);
-        });
+        for (i = 0; i < this.systemNames.length; i++) {
+          if (!systems[this.systemNames[i]].tick) { continue; }
+          systems[this.systemNames[i]].tick(time, timeDelta);
+        }
       }
     },
 
@@ -531,18 +538,20 @@ module.exports.AScene = registerElement('a-scene', {
      */
     tock: {
       value: function (time, timeDelta) {
+        var i;
         var systems = this.systems;
 
         // Components.
-        this.behaviors.tock.forEach(function (component) {
-          if (!component.el.isPlaying) { return; }
-          component.tock(time, timeDelta);
-        });
+        for (i = 0; i < this.behaviors.tock.length; i++) {
+          if (!this.behaviors.tock[i].el.isPlaying) { continue; }
+          this.behaviors.tock[i].tock(time, timeDelta);
+        }
+
         // Systems.
-        Object.keys(systems).forEach(function (key) {
-          if (!systems[key].tock) { return; }
-          systems[key].tock(time, timeDelta);
-        });
+        for (i = 0; i < this.systemNames.length; i++) {
+          if (!systems[this.systemNames[i]].tock) { continue; }
+          systems[this.systemNames[i]].tock(time, timeDelta);
+        }
       }
     },
 
