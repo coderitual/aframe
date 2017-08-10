@@ -65314,10 +65314,18 @@ module.exports.Component = registerComponent('cursor', {
   },
 
   init: function () {
+    var self = this;
+
     this.fuseTimeout = undefined;
     this.cursorDownEl = null;
     this.intersection = null;
     this.intersectedEl = null;
+    this.canvasBounds = document.body.getBoundingClientRect();
+
+    // Debounce.
+    this.updateCanvasBounds = utils.debounce(function updateCanvasBounds () {
+      self.canvasBounds = self.el.sceneEl.canvas.getBoundingClientRect();
+    }, 200);
 
     // Bind methods.
     this.onCursorDown = bind(this.onCursorDown, this);
@@ -65375,6 +65383,8 @@ module.exports.Component = registerComponent('cursor', {
     });
     el.addEventListener('raycaster-intersection', this.onIntersection);
     el.addEventListener('raycaster-intersection-cleared', this.onIntersectionCleared);
+
+    window.addEventListener('resize', this.updateCanvasBounds);
   },
 
   removeEventListeners: function () {
@@ -65398,6 +65408,7 @@ module.exports.Component = registerComponent('cursor', {
     el.removeEventListener('raycaster-intersection', this.onIntersection);
     el.removeEventListener('raycaster-intersection-cleared', this.onIntersectionCleared);
     window.removeEventListener('mousemove', this.onMouseMove);
+    window.removeEventListener('resize', this.updateCanvasBounds);
   },
 
   updateMouseEventListeners: function () {
@@ -65407,6 +65418,7 @@ module.exports.Component = registerComponent('cursor', {
     if (this.data.rayOrigin !== 'mouse') { return; }
     window.addEventListener('mousemove', this.onMouseMove, false);
     el.setAttribute('raycaster', 'useWorldCoordinates', true);
+    this.updateCanvasBounds();
   },
 
   onMouseMove: (function () {
@@ -65421,8 +65433,14 @@ module.exports.Component = registerComponent('cursor', {
       var camera = this.el.sceneEl.camera;
       camera.parent.updateMatrixWorld();
       camera.updateMatrixWorld();
-      mouse.x = (evt.clientX / window.innerWidth) * 2 - 1;
-      mouse.y = -(evt.clientY / window.innerHeight) * 2 + 1;
+
+      // Calculate mouse position based on the canvas element
+      var bounds = this.canvasBounds;
+      var left = evt.clientX - bounds.left;
+      var top = evt.clientY - bounds.top;
+      mouse.x = (left / bounds.width) * 2 - 1;
+      mouse.y = -(top / bounds.height) * 2 + 1;
+
       origin.setFromMatrixPosition(camera.matrixWorld);
       direction.set(mouse.x, mouse.y, 0.5).unproject(camera).sub(origin).normalize();
       this.el.setAttribute('raycaster', rayCasterConfig);
@@ -67317,6 +67335,8 @@ module.exports.Component = registerComponent('look-controls', {
     this.previousHMDPosition = new THREE.Vector3();
     this.hmdQuaternion = new THREE.Quaternion();
     this.hmdEuler = new THREE.Euler();
+    this.position = {};
+    this.rotation = {};
 
     this.setupMouseControls();
     this.setupHMDControls();
@@ -67450,7 +67470,7 @@ module.exports.Component = registerComponent('look-controls', {
     var pitchObject = this.pitchObject;
     var yawObject = this.yawObject;
     var sceneEl = this.el.sceneEl;
-    var rotation;
+    var rotation = this.rotation;
 
     // Calculate HMD quaternion.
     hmdQuaternion = hmdQuaternion.copy(this.dolly.quaternion);
@@ -67458,35 +67478,27 @@ module.exports.Component = registerComponent('look-controls', {
 
     if (sceneEl.isMobile) {
       // On mobile, do camera rotation with touch events and sensors.
-      rotation = {
-        x: radToDeg(hmdEuler.x) + radToDeg(pitchObject.rotation.x),
-        y: radToDeg(hmdEuler.y) + radToDeg(yawObject.rotation.y),
-        z: radToDeg(hmdEuler.z)
-      };
+      rotation.x = radToDeg(hmdEuler.x) + radToDeg(pitchObject.rotation.x);
+      rotation.y = radToDeg(hmdEuler.y) + radToDeg(yawObject.rotation.y);
+      rotation.z = radToDeg(hmdEuler.z);
     } else if (!sceneEl.is('vr-mode') || isNullVector(hmdEuler) || !this.data.hmdEnabled) {
       // Mouse drag if WebVR not active (not connected, no incoming sensor data).
       currentRotation = this.el.getAttribute('rotation');
       deltaRotation = this.calculateDeltaRotation();
       if (this.data.reverseMouseDrag) {
-        rotation = {
-          x: currentRotation.x - deltaRotation.x,
-          y: currentRotation.y - deltaRotation.y,
-          z: currentRotation.z
-        };
+        rotation.x = currentRotation.x - deltaRotation.x;
+        rotation.y = currentRotation.y - deltaRotation.y;
+        rotation.z = currentRotation.z;
       } else {
-        rotation = {
-          x: currentRotation.x + deltaRotation.x,
-          y: currentRotation.y + deltaRotation.y,
-          z: currentRotation.z
-        };
+        rotation.x = currentRotation.x + deltaRotation.x;
+        rotation.y = currentRotation.y + deltaRotation.y;
+        rotation.z = currentRotation.z;
       }
     } else {
       // Mouse rotation ignored with an active headset. Use headset rotation.
-      rotation = {
-        x: radToDeg(hmdEuler.x),
-        y: radToDeg(hmdEuler.y),
-        z: radToDeg(hmdEuler.z)
-      };
+      rotation.x = radToDeg(hmdEuler.x);
+      rotation.y = radToDeg(hmdEuler.y);
+      rotation.z = radToDeg(hmdEuler.z);
     }
 
     this.el.setAttribute('rotation', rotation);
@@ -67517,8 +67529,9 @@ module.exports.Component = registerComponent('look-controls', {
 
     return function () {
       var el = this.el;
-      var currentPosition = el.getAttribute('position');
       var currentHMDPosition;
+      var currentPosition;
+      var position = this.position;
       var previousHMDPosition = this.previousHMDPosition;
       var sceneEl = this.el.sceneEl;
 
@@ -67532,11 +67545,11 @@ module.exports.Component = registerComponent('look-controls', {
 
       previousHMDPosition.copy(currentHMDPosition);
 
-      el.setAttribute('position', {
-        x: currentPosition.x + deltaHMDPosition.x,
-        y: currentPosition.y + deltaHMDPosition.y,
-        z: currentPosition.z + deltaHMDPosition.z
-      });
+      currentPosition = el.getAttribute('position');
+      position.x = currentPosition.x + deltaHMDPosition.x;
+      position.y = currentPosition.y + deltaHMDPosition.y;
+      position.z = currentPosition.z + deltaHMDPosition.z;
+      el.setAttribute('position', position);
     };
   })(),
 
@@ -70799,6 +70812,10 @@ var shouldCaptureKeyEvent = utils.shouldCaptureKeyEvent;
 
 var CLAMP_VELOCITY = 0.00001;
 var MAX_DELTA = 0.2;
+var KEYS = [
+  'KeyW', 'KeyA', 'KeyS', 'KeyD',
+  'ArrowUp', 'ArrowLeft', 'ArrowRight', 'ArrowDown'
+];
 
 /**
  * WASD component to control entities using WASD keys.
@@ -70821,6 +70838,7 @@ module.exports.Component = registerComponent('wasd-controls', {
     // To keep track of the pressed keys.
     this.keys = {};
 
+    this.position = {};
     this.velocity = new THREE.Vector3();
 
     // Bind methods and add event listeners.
@@ -70833,27 +70851,29 @@ module.exports.Component = registerComponent('wasd-controls', {
   },
 
   tick: function (time, delta) {
+    var currentPosition;
     var data = this.data;
     var el = this.el;
     var movementVector;
-    var position;
+    var position = this.position;
     var velocity = this.velocity;
 
-    // Use seconds.
-    delta = delta / 1000;
+    if (!velocity[data.adAxis] && !velocity[data.wsAxis] &&
+        isEmptyObject(this.keys)) { return; }
 
-    // Get velocity.
+    // Update velocity.
+    delta = delta / 1000;
     this.updateVelocity(delta);
+
     if (!velocity[data.adAxis] && !velocity[data.wsAxis]) { return; }
 
     // Get movement vector and translate position.
+    currentPosition = el.getAttribute('position');
     movementVector = this.getMovementVector(delta);
-    position = el.getAttribute('position');
-    el.setAttribute('position', {
-      x: position.x + movementVector.x,
-      y: position.y + movementVector.y,
-      z: position.z + movementVector.z
-    });
+    position.x = currentPosition.x + movementVector.x;
+    position.y = currentPosition.y + movementVector.y;
+    position.z = currentPosition.z + movementVector.z;
+    el.setAttribute('position', position);
   },
 
   remove: function () {
@@ -70984,15 +71004,21 @@ module.exports.Component = registerComponent('wasd-controls', {
     var code;
     if (!shouldCaptureKeyEvent(event)) { return; }
     code = event.code || KEYCODE_TO_CODE[event.keyCode];
-    this.keys[code] = true;
+    if (KEYS.indexOf(code) !== -1) { this.keys[code] = true; }
   },
 
   onKeyUp: function (event) {
     var code;
     code = event.code || KEYCODE_TO_CODE[event.keyCode];
-    this.keys[code] = false;
+    delete this.keys[code];
   }
 });
+
+function isEmptyObject (keys) {
+  var key;
+  for (key in keys) { return false; }
+  return true;
+}
 
 },{"../constants":117,"../core/component":126,"../lib/three":174,"../utils/":197}],116:[function(_dereq_,module,exports){
 /**
@@ -73118,7 +73144,7 @@ module.exports = registerElement('a-node', {
         Promise.all(childrenLoaded).then(function emitLoaded () {
           self.hasLoaded = true;
           if (cb) { cb(); }
-          self.emit('loaded', {}, false);
+          self.emit('loaded', undefined, false);
         });
       },
       writable: true
@@ -73214,33 +73240,27 @@ module.exports = registerElement('a-node', {
     },
 
     /**
-     * Emits a DOM event.
+     * Emit a DOM event.
      *
-     * @param {String} name
-     *   Name of event (use a space-delimited string for multiple events).
-     * @param {Object=} [detail={}]
-     *   Custom data to pass as `detail` to the event.
-     * @param {Boolean=} [bubbles=true]
-     *   Whether the event should bubble.
-     * @param {Object=} [extraData]
-     *   Extra data to pass to the event, if any.
+     * @param {string} name - Name of event.
+     * @param {object} [detail={}] - Custom data to pass as `detail` to the event.
+     * @param {boolean} [bubbles=true] - Whether the event should bubble.
+     * @param {object} [extraData] - Extra data to pass to the event, if any.
      */
     emit: {
       value: function (name, detail, bubbles, extraData) {
+        var data;
         var self = this;
-        detail = detail || {};
         if (bubbles === undefined) { bubbles = true; }
-        var data = { bubbles: !!bubbles, detail: detail };
+        data = {bubbles: !!bubbles, detail: detail};
         if (extraData) { utils.extend(data, extraData); }
-        return name.split(' ').map(function (eventName) {
-          return utils.fireEvent(self, eventName, data);
-        });
+        return utils.fireEvent(self, name, data);
       },
       writable: window.debug
     },
 
     /**
-     * Returns a closure that emits a DOM event.
+     * Return a closure that emits a DOM event.
      *
      * @param {String} name
      *   Name of event (use a space-delimited string for multiple events).
@@ -73476,19 +73496,17 @@ var Component = module.exports.Component = function (el, attrValue, id) {
   this.el = el;
   this.id = id;
   this.attrName = this.name + (id ? '__' + id : '');
+  this.evtDetail = {id: this.id, name: this.name};
   this.initialized = false;
   this.el.components[this.attrName] = this;
+
   // Store component data from previous update call.
   this.oldData = undefined;
+
   // Last value passed to updateProperties.
   this.previousAttrValue = undefined;
-  this.throttledEmitComponentChanged = utils.throttle(function emitComponentChange (oldData) {
-    el.emit('componentchanged', {
-      id: self.id,
-      name: self.name,
-      newData: self.data,
-      oldData: oldData
-    }, false);
+  this.throttledEmitComponentChanged = utils.throttle(function emitChange () {
+    el.emit('componentchanged', self.evtDetail, false);
   }, 200);
   this.updateProperties(attrValue);
 };
@@ -73584,17 +73602,6 @@ Component.prototype = {
     if (isSingleProp(schema)) { return stringifyProperty(data, schema); }
     data = stringifyProperties(data, schema);
     return styleParser.stringify(data);
-  },
-
-  /**
-   * Returns a copy of data such that we don't expose the private this.data.
-   *
-   * @returns {object} data
-   */
-  getData: function () {
-    var data = this.data;
-    if (typeof data !== 'object') { return data; }
-    return utils.extend({}, data);
   },
 
   /**
@@ -73713,11 +73720,7 @@ Component.prototype = {
       this.update(oldData);
       // Play the component if the entity is playing.
       if (el.isPlaying) { this.play(); }
-      el.emit('componentinitialized', {
-        id: this.id,
-        name: this.name,
-        data: this.getData()
-      }, false);
+      el.emit('componentinitialized', this.evtDetail, false);
     } else {
       // Don't update if properties haven't changed
       if (utils.deepEqual(this.oldData, this.data)) { return; }
@@ -73725,8 +73728,7 @@ Component.prototype = {
       this.oldData = extendProperties({}, this.data, isSinglePropSchema);
       // Update component.
       this.update(oldData);
-      // Limit event to fire once every 200ms.
-      this.throttledEmitComponentChanged(oldData);
+      this.throttledEmitComponentChanged();
     }
   },
 
@@ -76624,7 +76626,7 @@ _dereq_('./core/a-mixin');
 _dereq_('./extras/components/');
 _dereq_('./extras/primitives/');
 
-console.log('A-Frame Version: 0.6.1 (Date 07-08-2017, Commit #fc2f11c)');
+console.log('A-Frame Version: 0.6.1 (Date 09-08-2017, Commit #5010ad6)');
 console.log('three Version:', pkg.dependencies['three']);
 console.log('WebVR Polyfill Version:', pkg.dependencies['webvr-polyfill']);
 
@@ -78160,22 +78162,24 @@ module.exports.regex = regex;
  */
 function parse (value, defaultVec) {
   var coordinate;
-  var vec = {};
+  var vec;
 
-  if (value && typeof value === 'object') {
-    return vecParseFloat({
-      x: value.x !== undefined ? value.x : (defaultVec && defaultVec.x),
-      y: value.y !== undefined ? value.y : (defaultVec && defaultVec.y),
-      z: value.z !== undefined ? value.z : (defaultVec && defaultVec.z),
-      w: value.w !== undefined ? value.w : (defaultVec && defaultVec.w)
-    });
+  if (value && value instanceof Object) {
+    if (defaultVec) {
+      value.x = value.x === undefined ? defaultVec.x : value.x;
+      value.y = value.y === undefined ? defaultVec.y : value.y;
+      value.z = value.z === undefined ? defaultVec.z : value.z;
+      value.w = value.w === undefined ? defaultVec.w : value.w;
+    }
+    return vecParseFloat(value);
   }
 
-  if (typeof value !== 'string' || value === null) {
+  if (value === null || value === undefined) {
     return typeof defaultVec === 'object' ? extend({}, defaultVec) : defaultVec;
   }
 
   coordinate = value.trim().replace(/\s+/g, ' ').split(' ');
+  vec = {};
   vec.x = coordinate[0] || defaultVec && defaultVec.x;
   vec.y = coordinate[1] || defaultVec && defaultVec.y;
   vec.z = coordinate[2] || defaultVec && defaultVec.z;
@@ -78185,7 +78189,7 @@ function parse (value, defaultVec) {
 module.exports.parse = parse;
 
 /**
- * Stringifies coordinates from an object with keys [x y z].
+ * Stringify coordinates from an object with keys [x y z].
  * Example: {x: 3, y: 10, z: -5} to "3 10 -5".
  *
  * @param {object|string} data - An object with keys [x y z].
@@ -78211,18 +78215,21 @@ module.exports.isCoordinate = function (value) {
 };
 
 function vecParseFloat (vec) {
-  Object.keys(vec).forEach(function (key) {
+  var key;
+  for (key in vec) {
     if (vec[key] === undefined) {
       delete vec[key];
-      return;
+      continue;
     }
-    vec[key] = parseFloat(vec[key], 10);
-  });
+    if (vec[key].constructor === String) {
+      vec[key] = parseFloat(vec[key], 10);
+    }
+  }
   return vec;
 }
 
 /**
- * Converts {x, y, z} object to three.js Vector3.
+ * Convert {x, y, z} object to three.js Vector3.
  */
 module.exports.toVector3 = function (vec3) {
   return new THREE.Vector3(vec3.x, vec3.y, vec3.z);
@@ -78570,6 +78577,30 @@ module.exports.throttleTick = function (functionToThrottle, minimumInterval, opt
       lastTime = time;
       functionToThrottle(time, sinceLastTime);
     }
+  };
+};
+
+/**
+ * Returns debounce function that gets called only once after a set of repeated calls.
+ *
+ * @param {function} functionToDebounce
+ * @param {number} wait - Time to wait for repeated function calls (milliseconds).
+ * @param {boolean} immediate - Calls the function immediately regardless of if it should be waiting.
+ * @returns {function} Debounced function.
+ */
+module.exports.debounce = function (func, wait, immediate) {
+  var timeout;
+  return function () {
+    var context = this;
+    var args = arguments;
+    var later = function () {
+      timeout = null;
+      if (!immediate) func.apply(context, args);
+    };
+    var callNow = immediate && !timeout;
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+    if (callNow) func.apply(context, args);
   };
 };
 
