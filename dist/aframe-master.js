@@ -65603,13 +65603,9 @@ module.exports.Component = registerComponent('daydream-controls', {
   // 1 - menu (never dispatched on this layer)
   // 2 - system (never dispatched on this layer)
   mapping: {
-    axes: {'trackpad': [0, 1]},
+    axes: {trackpad: [0, 1]},
     buttons: ['trackpad', 'menu', 'system']
   },
-
-  // Use these labels for detail on axis events such as thumbstickmoved.
-  // e.g. for thumbstickmoved detail, the first axis returned is labeled x, and the second is labeled y.
-  axisLabels: ['x', 'y', 'z', 'w'],
 
   bindMethods: function () {
     this.onModelLoaded = bind(this.onModelLoaded, this);
@@ -65633,8 +65629,8 @@ module.exports.Component = registerComponent('daydream-controls', {
     this.everGotGamepadEvent = false;
     this.lastControllerCheck = 0;
     this.bindMethods();
-    this.checkControllerPresentAndSetup = checkControllerPresentAndSetup; // to allow mock
-    this.emitIfAxesChanged = emitIfAxesChanged; // to allow mock
+    this.checkControllerPresentAndSetup = checkControllerPresentAndSetup;  // To allow mock.
+    this.emitIfAxesChanged = emitIfAxesChanged;  // To allow mock.
   },
 
   addEventListeners: function () {
@@ -65691,7 +65687,12 @@ module.exports.Component = registerComponent('daydream-controls', {
   injectTrackedControls: function () {
     var el = this.el;
     var data = this.data;
-    el.setAttribute('tracked-controls', {idPrefix: GAMEPAD_ID_PREFIX, hand: data.hand, rotationOffset: data.rotationOffset, armModel: data.armModel});
+    el.setAttribute('tracked-controls', {
+      armModel: data.armModel,
+      hand: data.hand,
+      idPrefix: GAMEPAD_ID_PREFIX,
+      rotationOffset: data.rotationOffset
+    });
     if (!this.data.model) { return; }
     this.el.setAttribute('obj-model', {
       obj: DAYDREAM_CONTROLLER_MODEL_OBJ_URL,
@@ -65711,8 +65712,6 @@ module.exports.Component = registerComponent('daydream-controls', {
     if (!this.everGotGamepadEvent) { this.checkIfControllerPresent(); }
   },
 
-  // No need for onButtonChanged, since Daydream controller has no analog buttons.
-
   onModelLoaded: function (evt) {
     var controllerObject3D = evt.detail.model;
     var buttonMeshes;
@@ -65721,11 +65720,13 @@ module.exports.Component = registerComponent('daydream-controls', {
     buttonMeshes.menu = controllerObject3D.getObjectByName('AppButton_AppButton_Cylinder.004');
     buttonMeshes.system = controllerObject3D.getObjectByName('HomeButton_HomeButton_Cylinder.005');
     buttonMeshes.trackpad = controllerObject3D.getObjectByName('TouchPad_TouchPad_Cylinder.003');
-    // Offset pivot point
+    // Offset pivot point.
     controllerObject3D.position.set(0, 0, -0.04);
   },
 
-  onAxisMoved: function (evt) { this.emitIfAxesChanged(this, this.mapping.axes, evt); },
+  onAxisMoved: function (evt) {
+    this.emitIfAxesChanged(this, this.mapping.axes, evt);
+  },
 
   onButtonChanged: function (evt) {
     var button = this.mapping.buttons[evt.detail.id];
@@ -65802,7 +65803,7 @@ module.exports.Component = registerComponent('gearvr-controls', {
     buttonTouchedColor: {type: 'color', default: '#777777'},
     buttonHighlightColor: {type: 'color', default: '#FFFFFF'},
     model: {default: true},
-    rotationOffset: {default: 0}, // use -999 as sentinel value to auto-determine based on hand
+    rotationOffset: {default: 0},
     armModel: {default: true}
   },
 
@@ -65810,13 +65811,9 @@ module.exports.Component = registerComponent('gearvr-controls', {
   // 0 - trackpad
   // 1 - triggeri
   mapping: {
-    axes: {'trackpad': [0, 1]},
+    axes: {trackpad: [0, 1]},
     buttons: ['trackpad', 'trigger']
   },
-
-  // Use these labels for detail on axis events such as thumbstickmoved.
-  // e.g. for thumbstickmoved detail, the first axis returned is labeled x, and the second is labeled y.
-  axisLabels: ['x', 'y', 'z', 'w'],
 
   bindMethods: function () {
     this.onModelLoaded = bind(this.onModelLoaded, this);
@@ -65840,8 +65837,8 @@ module.exports.Component = registerComponent('gearvr-controls', {
     this.everGotGamepadEvent = false;
     this.lastControllerCheck = 0;
     this.bindMethods();
-    this.checkControllerPresentAndSetup = checkControllerPresentAndSetup; // to allow mock
-    this.emitIfAxesChanged = emitIfAxesChanged; // to allow mock
+    this.checkControllerPresentAndSetup = checkControllerPresentAndSetup;  // To allow mock.
+    this.emitIfAxesChanged = emitIfAxesChanged;  // To allow mock.
   },
 
   addEventListeners: function () {
@@ -65871,7 +65868,8 @@ module.exports.Component = registerComponent('gearvr-controls', {
   },
 
   checkIfControllerPresent: function () {
-    this.checkControllerPresentAndSetup(this, GAMEPAD_ID_PREFIX, this.data.hand ? {hand: this.data.hand} : {});
+    this.checkControllerPresentAndSetup(this, GAMEPAD_ID_PREFIX,
+                                        this.data.hand ? {hand: this.data.hand} : {});
   },
 
   onGamepadConnectionEvent: function (evt) {
@@ -65895,7 +65893,11 @@ module.exports.Component = registerComponent('gearvr-controls', {
   injectTrackedControls: function () {
     var el = this.el;
     var data = this.data;
-    el.setAttribute('tracked-controls', {idPrefix: GAMEPAD_ID_PREFIX, rotationOffset: data.rotationOffset, armModel: data.armModel});
+    el.setAttribute('tracked-controls', {
+      armModel: data.armModel,
+      idPrefix: GAMEPAD_ID_PREFIX,
+      rotationOffset: data.rotationOffset
+    });
     if (!this.data.model) { return; }
     this.el.setAttribute('obj-model', {
       obj: GEARVR_CONTROLLER_MODEL_OBJ_URL,
@@ -65947,7 +65949,9 @@ module.exports.Component = registerComponent('gearvr-controls', {
     this.updateModel(buttonName, evtName);
   },
 
-  onAxisMoved: function (evt) { this.emitIfAxesChanged(this, this.mapping.axes, evt); },
+  onAxisMoved: function (evt) {
+    this.emitIfAxesChanged(this, this.mapping.axes, evt);
+  },
 
   updateModel: function (buttonName, evtName) {
     var i;
@@ -67991,19 +67995,19 @@ var GAMEPAD_ID_PREFIX = 'Oculus Touch';
 var PIVOT_OFFSET = {x: 0, y: -0.015, z: 0.04};
 
 /**
- * Oculus Touch Controls Component
- * Interfaces with Oculus Touch controllers and maps Gamepad events to
+ * Oculus Touch controls component.
+ * Interface with Oculus Touch controllers and maps Gamepad events to
  * common controller buttons: trackpad, trigger, grip, menu and system
- * It loads a controller model and highlights the pressed buttons
+ * Load a controller model and highlights the pressed buttons
  */
 module.exports.Component = registerComponent('oculus-touch-controls', {
   schema: {
     hand: {default: 'left'},
-    buttonColor: {type: 'color', default: '#999'},          // Off-white.
+    buttonColor: {type: 'color', default: '#999'},  // Off-white.
     buttonTouchColor: {type: 'color', default: '#8AB'},
-    buttonHighlightColor: {type: 'color', default: '#2DF'}, // Light blue.
+    buttonHighlightColor: {type: 'color', default: '#2DF'},  // Light blue.
     model: {default: true},
-    rotationOffset: {default: 0} // no default offset; -999 is sentinel value to auto-determine based on hand
+    rotationOffset: {default: 0}
   },
 
   // buttonId
@@ -68015,18 +68019,14 @@ module.exports.Component = registerComponent('oculus-touch-controls', {
   // 5 - surface (touch only)
   mapping: {
     left: {
-      axes: {'thumbstick': [0, 1]},
+      axes: {thumbstick: [0, 1]},
       buttons: ['thumbstick', 'trigger', 'grip', 'xbutton', 'ybutton', 'surface']
     },
     right: {
-      axes: {'thumbstick': [0, 1]},
+      axes: {thumbstick: [0, 1]},
       buttons: ['thumbstick', 'trigger', 'grip', 'abutton', 'bbutton', 'surface']
     }
   },
-
-  // Use these labels for detail on axis events such as thumbstickmoved.
-  // e.g. for thumbstickmoved detail, the first axis returned is labeled x, and the second is labeled y.
-  axisLabels: ['x', 'y', 'z', 'w'],
 
   bindMethods: function () {
     this.onModelLoaded = bind(this.onModelLoaded, this);
@@ -68047,8 +68047,9 @@ module.exports.Component = registerComponent('oculus-touch-controls', {
     this.previousButtonValues = {};
     this.bindMethods();
 
-    this.emitIfAxesChanged = controllerUtils.emitIfAxesChanged;   // Allow mock.
-    this.checkControllerPresentAndSetup = controllerUtils.checkControllerPresentAndSetup;  // Allow mock.
+    // Allow mock.
+    this.emitIfAxesChanged = controllerUtils.emitIfAxesChanged;
+    this.checkControllerPresentAndSetup = controllerUtils.checkControllerPresentAndSetup;
   },
 
   addEventListeners: function () {
@@ -70228,7 +70229,7 @@ module.exports.Component = registerComponent('tracked-controls', {
     id: {type: 'string', default: ''},
     idPrefix: {type: 'string', default: ''},
     rotationOffset: {default: 0},
-    // Arm model parameters, to use when not 6DOF. (pose hasPosition false, no position)
+    // Arm model parameters when not 6DoF.
     armModel: {default: true},
     headElement: {type: 'selector'}
   },
@@ -70243,6 +70244,8 @@ module.exports.Component = registerComponent('tracked-controls', {
     this.controllerPosition = new THREE.Vector3();
     this.controllerQuaternion = new THREE.Quaternion();
     this.deltaControllerPosition = new THREE.Vector3();
+    this.position = {};
+    this.rotation = {};
     this.standingMatrix = new THREE.Matrix4();
 
     this.previousControllerPosition = new THREE.Vector3();
@@ -70261,12 +70264,16 @@ module.exports.Component = registerComponent('tracked-controls', {
   /**
    * Return default user height to use for non-6DOF arm model.
    */
-  defaultUserHeight: function () { return DEFAULT_CAMERA_HEIGHT; }, // default camera height (for cameras with zero)
+  defaultUserHeight: function () {
+    return DEFAULT_CAMERA_HEIGHT;
+  },
 
   /**
    * Return head element to use for non-6DOF arm model.
    */
-  getHeadElement: function () { return this.data.headElement || this.el.sceneEl.camera.el; },
+  getHeadElement: function () {
+    return this.data.headElement || this.el.sceneEl.camera.el;
+  },
 
   /**
    * Handle update to `id` or `idPrefix.
@@ -70291,25 +70298,33 @@ module.exports.Component = registerComponent('tracked-controls', {
   },
 
   applyArmModel: function (controllerPosition) {
-      // Use controllerPosition and deltaControllerPosition to avoid creating yet more variables...
+    // Use controllerPosition and deltaControllerPosition to avoid creating variables.
     var controller = this.controller;
-    var pose = controller.pose;
-    var controllerQuaternion = this.controllerQuaternion;
     var controllerEuler = this.controllerEuler;
+    var controllerQuaternion = this.controllerQuaternion;
     var deltaControllerPosition = this.deltaControllerPosition;
-    var hand = (controller ? controller.hand : undefined) || DEFAULT_HANDEDNESS;
-    var headEl = this.getHeadElement();
-    var headObject3D = headEl.object3D;
-    var headCamera = headEl.components.camera;
-    var userHeight = (headCamera ? headCamera.data.userHeight : 0) || this.defaultUserHeight();
+    var hand;
+    var headCamera;
+    var headEl;
+    var headObject3D;
+    var pose;
+    var userHeight;
+
+    headEl = this.getHeadElement();
+    headObject3D = headEl.object3D;
+    headCamera = headEl.components.camera;
+    userHeight = (headCamera ? headCamera.data.userHeight : 0) || this.defaultUserHeight();
+
+    pose = controller.pose;
+    hand = (controller ? controller.hand : undefined) || DEFAULT_HANDEDNESS;
 
     // Use camera position as head position.
     controllerPosition.copy(headObject3D.position);
     // Set offset for degenerate "arm model" to elbow.
     deltaControllerPosition.set(
       EYES_TO_ELBOW.x * (hand === 'left' ? -1 : hand === 'right' ? 1 : 0),
-      EYES_TO_ELBOW.y, // lower than your eyes
-      EYES_TO_ELBOW.z); // slightly out in front
+      EYES_TO_ELBOW.y,  // Lower than our eyes.
+      EYES_TO_ELBOW.z);  // Slightly out in front.
     // Scale offset by user height.
     deltaControllerPosition.multiplyScalar(userHeight);
     // Apply camera Y rotation (not X or Z, so you can look down at your hand).
@@ -70317,11 +70332,11 @@ module.exports.Component = registerComponent('tracked-controls', {
     // Apply rotated offset to position.
     controllerPosition.add(deltaControllerPosition);
 
-    // Set offset for degenerate "arm model" forearm.
-    deltaControllerPosition.set(FOREARM.x, FOREARM.y, FOREARM.z); // forearm sticking out from elbow
+    // Set offset for degenerate "arm model" forearm. Forearm sticking out from elbow.
+    deltaControllerPosition.set(FOREARM.x, FOREARM.y, FOREARM.z);
     // Scale offset by user height.
     deltaControllerPosition.multiplyScalar(userHeight);
-    // Apply controller X and Y rotation (tilting up/down/left/right is usually moving the arm)
+    // Apply controller X/Y rotation (tilting up/down/left/right is usually moving the arm).
     if (pose.orientation) {
       controllerQuaternion.fromArray(pose.orientation);
     } else {
@@ -70367,7 +70382,7 @@ module.exports.Component = registerComponent('tracked-controls', {
       dolly.position.fromArray(pose.position);
     } else {
       if (this.data.armModel) {
-        // The controller is not 6DOF, so apply arm model.
+        // Controller not 6DOF, apply arm model.
         this.applyArmModel(controllerPosition);
       }
       dolly.position.copy(controllerPosition);
@@ -70391,21 +70406,19 @@ module.exports.Component = registerComponent('tracked-controls', {
     controllerPosition.setFromMatrixPosition(dolly.matrix);
 
     // Apply rotation (as absolute, with rotation offset).
-    el.setAttribute('rotation', {
-      x: THREE.Math.radToDeg(controllerEuler.x),
-      y: THREE.Math.radToDeg(controllerEuler.y),
-      z: THREE.Math.radToDeg(controllerEuler.z) + this.data.rotationOffset
-    });
+    this.rotation.x = THREE.Math.radToDeg(controllerEuler.x);
+    this.rotation.y = THREE.Math.radToDeg(controllerEuler.y);
+    this.rotation.z = THREE.Math.radToDeg(controllerEuler.z) + this.data.rotationOffset;
+    el.setAttribute('rotation', this.rotation);
 
     // Apply position (as delta from previous Gamepad position).
     deltaControllerPosition.copy(controllerPosition).sub(this.previousControllerPosition);
     this.previousControllerPosition.copy(controllerPosition);
     currentPosition = el.getAttribute('position');
-    el.setAttribute('position', {
-      x: currentPosition.x + deltaControllerPosition.x,
-      y: currentPosition.y + deltaControllerPosition.y,
-      z: currentPosition.z + deltaControllerPosition.z
-    });
+    this.position.x = currentPosition.x + deltaControllerPosition.x;
+    this.position.y = currentPosition.y + deltaControllerPosition.y;
+    this.position.z = currentPosition.z + deltaControllerPosition.z;
+    el.setAttribute('position', this.position);
   },
 
   /**
@@ -70583,16 +70596,9 @@ module.exports.Component = registerComponent('vive-controls', {
    * 4 - system (never dispatched on this layer)
    */
   mapping: {
-    axes: {'trackpad': [0, 1]},
+    axes: {trackpad: [0, 1]},
     buttons: ['trackpad', 'trigger', 'grip', 'menu', 'system']
   },
-
-  /**
-   * Labels for detail on axis events such as `thumbstickmoved`.
-   * For example, on `thumbstickmoved` detail, the first axis returned is labeled x, and the
-   * second is labeled y.
-   */
-  axisLabels: ['x', 'y', 'z', 'w'],
 
   init: function () {
     var self = this;
@@ -72104,15 +72110,20 @@ var proto = Object.create(ANode.prototype, {
    */
   detachedCallback: {
     value: function () {
+      var componentName;
+
       if (!this.parentEl) { return; }
 
       // Remove components.
-      Object.keys(this.components).forEach(bind(this.removeComponent, this));
+      for (componentName in this.components) { this.removeComponent(componentName); }
 
       if (this.isScene) { return; }
 
       this.removeFromParent();
       ANode.prototype.detachedCallback.call(this);
+
+      // Remove cyclic reference.
+      this.object3D.el = null;
     }
   },
 
@@ -72129,16 +72140,22 @@ var proto = Object.create(ANode.prototype, {
     }
   },
 
+  /**
+   * Add new mixin for each mixin with state suffix.
+   */
   mapStateMixins: {
     value: function (state, op) {
-      var mixins = this.getAttribute('mixin');
+      var mixins;
       var mixinIds;
+      var i;
+
+      mixins = this.getAttribute('mixin');
+
       if (!mixins) { return; }
       mixinIds = mixins.split(' ');
-      mixinIds.forEach(function (id) {
-        var mixinId = id + '-' + state;
-        op(mixinId);
-      });
+      for (i = 0; i < mixinIds.length; i++) {
+        op(mixinIds[i] + '-' + state);
+      }
       this.updateComponents();
     }
   },
@@ -72150,29 +72167,32 @@ var proto = Object.create(ANode.prototype, {
   updateStateMixins: {
     value: function (newMixins, oldMixins) {
       var diff;
-      var newMixinsIds = newMixins.split(' ');
-      var oldMixinsIds = (oldMixins || '') ? oldMixins.split(' ') : [];
-      var self = this;
+      var newMixinIds;
+      var oldMixinIds;
+      var i;
+      var j;
+      var stateMixinEls;
+
+      newMixinIds = newMixins.split(' ');
+      oldMixinIds = (oldMixins || '') ? oldMixins.split(' ') : [];
 
       // List of mixins that might have been removed on update.
-      diff = oldMixinsIds.filter(function (i) { return newMixinsIds.indexOf(i) < 0; });
+      diff = oldMixinIds.filter(function (i) { return newMixinIds.indexOf(i) < 0; });
 
       // Remove removed mixins.
-      diff.forEach(function (mixinId) {
-        // State Mixins
-        var stateMixinsEls = document.querySelectorAll('[id^=' + mixinId + '-]');
-        Array.prototype.forEach.call(stateMixinsEls, function (el) {
-          self.unregisterMixin(el.id);
-        });
-      });
+      for (i = 0; i < diff.length; i++) {
+        stateMixinEls = document.querySelectorAll('[id^=' + diff[i] + '-]');
+        for (j = 0; j < stateMixinEls.length; j++) {
+          this.unregisterMixin(stateMixinEls[j].id);
+        }
+      }
 
       // Add new mixins.
-      this.states.forEach(function (state) {
-        newMixinsIds.forEach(function (id) {
-          var mixinId = id + '-' + state;
-          self.registerMixin(mixinId);
-        });
-      });
+      for (i = 0; i < this.states.length; i++) {
+        for (j = 0; j < newMixinIds.length; j++) {
+          this.registerMixin(newMixinIds[j] + '-' + this.states[i]);
+        }
+      }
     }
   },
 
@@ -72264,7 +72284,7 @@ var proto = Object.create(ANode.prototype, {
         throw new Error("Trying to add an element that doesn't have an `object3D`");
       }
       this.object3D.add(el.object3D);
-      this.emit('child-attached', { el: el });
+      this.emit('child-attached', {el: el});
     }
   },
 
@@ -72404,6 +72424,7 @@ var proto = Object.create(ANode.prototype, {
       var self = this;
       var component = COMPONENTS[name];
       var dependencies;
+      var i;
 
       // Not a component.
       if (!component) { return; }
@@ -72414,14 +72435,14 @@ var proto = Object.create(ANode.prototype, {
       if (!dependencies) { return; }
 
       // Initialize dependencies.
-      dependencies.forEach(function initializeDependency (componentName) {
+      for (i = 0; i < dependencies.length; i++) {
         // Call getAttribute to initialize the data from the DOM.
         self.initComponent(
-          componentName,
-          window.HTMLElement.prototype.getAttribute.call(self, componentName) || undefined,
+          dependencies[i],
+          window.HTMLElement.prototype.getAttribute.call(self, dependencies[i]) || undefined,
           true
         );
-      });
+      }
     }
   },
 
@@ -72452,10 +72473,7 @@ var proto = Object.create(ANode.prototype, {
       component.pause();
       component.remove();
       delete this.components[name];
-      this.emit('componentremoved', {
-        id: component.id,
-        name: name
-      });
+      this.emit('componentremoved', component.evtDetail);
     },
     writable: window.debug
   },
@@ -72469,53 +72487,55 @@ var proto = Object.create(ANode.prototype, {
    *   from other sources (e.g., implemented by primitives).
    */
   updateComponents: {
-    value: function () {
+    value: (function () {
       var componentsToUpdate = {};
-      var extraComponents = {};
-      var i;
-      var self = this;
 
-      if (!this.hasLoaded) { return; }
+      return function () {
+        var data;
+        var extraComponents;
+        var i;
+        var name;
 
-      // Gather mixin-defined components.
-      getMixedInComponents(this).forEach(addComponent);
+        if (!this.hasLoaded) { return; }
 
-      // Gather from extra initial component data if defined (e.g., primitives).
-      if (this.getExtraComponents) {
-        extraComponents = this.getExtraComponents();
-        Object.keys(extraComponents).forEach(addComponent);
-      }
+        // Gather mixin-defined components.
+        for (i = 0; i < this.mixinEls.length; i++) {
+          for (name in this.mixinEls[i].componentCache) {
+            if (isComponent(name)) { componentsToUpdate[name] = true; }
+          }
+        }
 
-      // Gather entity-defined components.
-      for (i = 0; i < this.attributes.length; ++i) {
-        addComponent(this.attributes[i].name);
-      }
+        // Gather from extra initial component data if defined (e.g., primitives).
+        if (this.getExtraComponents) {
+          extraComponents = this.getExtraComponents();
+          for (name in extraComponents) {
+            if (isComponent(name)) { componentsToUpdate[name] = true; }
+          }
+        }
 
-      // Initialze or update default components first.
-      Object.keys(this.defaultComponents).forEach(doUpdateComponent);
+        // Gather entity-defined components.
+        for (i = 0; i < this.attributes.length; ++i) {
+          name = this.attributes[i].name;
+          if (isComponent(name)) { componentsToUpdate[name] = true; }
+        }
 
-      // Initialize or update rest of components.
-      Object.keys(componentsToUpdate).forEach(doUpdateComponent);
+        // Initialze or update default components first.
+        for (name in this.defaultComponents) {
+          data = mergeComponentData(this.getDOMAttribute(name),
+                                    extraComponents && extraComponents[name]);
+          this.updateComponent(name, data);
+          delete componentsToUpdate[name];
+        }
 
-      /**
-       * Add component to the list to initialize or update.
-       */
-      function addComponent (componentName) {
-        var name = componentName.split(MULTIPLE_COMPONENT_DELIMITER)[0];
-        if (!COMPONENTS[name]) { return; }
-        componentsToUpdate[componentName] = true;
-      }
-
-      /**
-       * Get component data and initialize or update component.
-       */
-      function doUpdateComponent (name) {
-        // Build defined component data.
-        var data = mergeComponentData(self.getDOMAttribute(name), extraComponents[name]);
-        delete componentsToUpdate[name];
-        self.updateComponent(name, data);
-      }
-    },
+        // Initialize or update rest of components.
+        for (name in componentsToUpdate) {
+          data = mergeComponentData(this.getDOMAttribute(name),
+                                    extraComponents && extraComponents[name]);
+          this.updateComponent(name, data);
+          delete componentsToUpdate[name];
+        }
+      };
+    })(),
     writable: window.debug
   },
 
@@ -72588,22 +72608,20 @@ var proto = Object.create(ANode.prototype, {
    */
   play: {
     value: function () {
-      var components = this.components;
-      var componentKeys = Object.keys(components);
+      var entities;
+      var i;
+      var key;
 
       // Already playing.
       if (this.isPlaying || !this.hasLoaded) { return; }
       this.isPlaying = true;
 
       // Wake up all components.
-      componentKeys.forEach(function playComponent (key) {
-        components[key].play();
-      });
+      for (key in this.components) { this.components[key].play(); }
 
       // Tell all child entities to play.
-      this.getChildEntities().forEach(function play (entity) {
-        entity.play();
-      });
+      entities = this.getChildEntities();
+      for (i = 0; i < entities.length; i++) { entities[i].play(); }
 
       this.emit('play');
     },
@@ -72616,21 +72634,19 @@ var proto = Object.create(ANode.prototype, {
    */
   pause: {
     value: function () {
-      var components = this.components;
-      var componentKeys = Object.keys(components);
+      var entities;
+      var i;
+      var key;
 
       if (!this.isPlaying) { return; }
       this.isPlaying = false;
 
       // Sleep all components.
-      componentKeys.forEach(function pauseComponent (key) {
-        components[key].pause();
-      });
+      for (key in this.components) { this.components[key].pause(); }
 
       // Tell all child entities to pause.
-      this.getChildEntities().forEach(function pause (obj) {
-        obj.pause();
-      });
+      entities = this.getChildEntities();
+      for (i = 0; i < entities.length; i++) { entities[i].pause(); }
 
       this.emit('pause');
     },
@@ -72691,9 +72707,10 @@ var proto = Object.create(ANode.prototype, {
       delimiterIndex = attrName.indexOf(MULTIPLE_COMPONENT_DELIMITER);
       componentName = delimiterIndex > 0 ? attrName.substring(0, delimiterIndex) : attrName;
 
-      // Not a component.
+      // Not a component. Normal set attribute.
       if (!COMPONENTS[componentName]) {
-        normalSetAttribute(this, attrName, arg1);
+        ANode.prototype.setAttribute.call(this, attrName, arg1);
+        if (attrName === 'mixin') { this.mixinUpdate(arg1); }
         return;
       }
 
@@ -72725,15 +72742,6 @@ var proto = Object.create(ANode.prototype, {
       // In debug mode, write component data up to the DOM.
       isDebugMode = this.sceneEl && this.sceneEl.getAttribute('debug');
       if (isDebugMode) { this.components[attrName].flushToDOM(); }
-
-      /**
-       * Update a non-component attribute.
-       * >> setAttribute('id', 'myEntity')
-       */
-      function normalSetAttribute (el, attrName, value) {
-        ANode.prototype.setAttribute.call(el, attrName, value);
-        if (attrName === 'mixin') { el.mixinUpdate(value); }
-      }
     },
     writable: window.debug
   },
@@ -72750,11 +72758,12 @@ var proto = Object.create(ANode.prototype, {
       var child;
       var children = this.children;
       var i;
+      var key;
 
       // Flush entity's components to DOM.
-      Object.keys(components).forEach(function flushComponent (componentName) {
-        components[componentName].flushToDOM(componentName in defaultComponents);
-      });
+      for (key in components) {
+        components[key].flushToDOM(key in defaultComponents);
+      }
 
       // Recurse.
       if (!recursive) { return; }
@@ -72867,17 +72876,6 @@ function checkComponentDefined (el, name) {
   return isComponentMixedIn(name, el.mixinEls);
 }
 
-function getMixedInComponents (entityEl) {
-  var components = [];
-  entityEl.mixinEls.forEach(function getMixedComponents (mixinEl) {
-    Object.keys(mixinEl.componentCache).forEach(addComponent);
-    function addComponent (key) {
-      components.push(key);
-    }
-  });
-  return components;
-}
-
 /**
  * Check if any mixins contains a component.
  *
@@ -72914,9 +72912,15 @@ function mergeComponentData (attrValue, extraData) {
   return attrValue || extraData;
 }
 
-AEntity = registerElement('a-entity', {
-  prototype: proto
-});
+function isComponent (componentName) {
+  if (componentName.indexOf(MULTIPLE_COMPONENT_DELIMITER) !== -1) {
+    componentName = componentName.split(MULTIPLE_COMPONENT_DELIMITER)[0];
+  }
+  if (!COMPONENTS[componentName]) { return false; }
+  return true;
+}
+
+AEntity = registerElement('a-entity', {prototype: proto});
 module.exports = AEntity;
 
 },{"../lib/three":174,"../utils/":197,"./a-node":124,"./a-register-element":125,"./component":126}],123:[function(_dereq_,module,exports){
@@ -73797,21 +73801,23 @@ Component.prototype = {
     var isSinglePropSchema = isSingleProp(schema);
     var mixinEls = this.el.mixinEls;
     var previousData;
-
     // 1. Default values (lowest precendence).
     if (isSinglePropSchema) {
-      // Clone default value if object so components don't share object.
-      data = typeof schema.default === 'object' ? utils.clone(schema.default) : schema.default;
+      // Clone default value if plain object so components don't share the same object
+      // that might be modified by the user.
+      data = schema.default.constructor === Object ? utils.clone(schema.default) : schema.default;
     } else {
       // Preserve previously set properties if clobber not enabled.
       previousData = !clobber && this.attrValue;
-      // Clone default value if object so components don't share object
-      data = typeof previousData === 'object' ? utils.clone(previousData) : {};
+      // Clone previous data to prevent sharing references with attrValue that might be
+      // modified by the user.
+      data = typeof previousData === 'object' ? cloneData(previousData) : {};
 
       // Apply defaults.
       for (i = 0, keys = Object.keys(schema), keysLength = keys.length; i < keysLength; i++) {
         defaultValue = schema[keys[i]].default;
         if (data[keys[i]] !== undefined) { continue; }
+        // Clone default value if object so components don't share object
         data[keys[i]] = defaultValue && defaultValue.constructor === Object
           ? utils.clone(defaultValue)
           : defaultValue;
@@ -73928,6 +73934,25 @@ module.exports.registerComponent = function (name, definition) {
   };
   return NewComponent;
 };
+
+/**
+* Clones component data.
+* Clone only the properties that are plain objects while
+* keeping a reference for the rest.
+*
+* @param data - Component data to clone.
+* @returns Cloned data.
+*/
+function cloneData (data) {
+  var clone = {};
+  var parsedProperty;
+  var key;
+  for (key in data) {
+    parsedProperty = data[key];
+    clone[key] = parsedProperty.constructor === Object ? utils.clone(parsedProperty) : parsedProperty;
+  }
+  return clone;
+}
 
 /**
 * Object extending with checking for single-property schema.
@@ -74405,11 +74430,22 @@ module.exports.AScene = registerElement('a-scene', {
         this.onVRPresentChangeBound = bind(this.onVRPresentChange, this);
         window.addEventListener('vrdisplaypresentchange', this.onVRPresentChangeBound);
 
+        // bind functions
+        this.enterVRBound = function () { self.enterVR(); };
+        this.exitVRBound = function () { self.exitVR(); };
+        this.exitVRTrueBound = function () { self.exitVR(true); };
+
         // Enter VR on `vrdisplayactivate` (e.g. putting on Rift headset).
-        window.addEventListener('vrdisplayactivate', function () { self.enterVR(); });
+        window.addEventListener('vrdisplayactivate', this.enterVRBound);
 
         // Exit VR on `vrdisplaydeactivate` (e.g. taking off Rift headset).
-        window.addEventListener('vrdisplaydeactivate', function () { self.exitVR(); });
+        window.addEventListener('vrdisplaydeactivate', this.exitVRBound);
+
+        // Enter VR on `vrdisplayconnect` (e.g. plugging on Rift headset).
+        window.addEventListener('vrdisplayconnect', this.enterVRBound);
+
+        // Exit VR on `vrdisplaydisconnect` (e.g. unplugging Rift headset).
+        window.addEventListener('vrdisplaydisconnect', this.exitVRTrueBound);
       },
       writable: window.debug
     },
@@ -74453,6 +74489,10 @@ module.exports.AScene = registerElement('a-scene', {
         scenes.splice(sceneIndex, 1);
 
         window.removeEventListener('vrdisplaypresentchange', this.onVRPresentChangeBound);
+        window.removeEventListener('vrdisplayactivate', this.enterVRBound);
+        window.removeEventListener('vrdisplaydeactivate', this.exitVRBound);
+        window.removeEventListener('vrdisplayconnect', this.enterVRBound);
+        window.removeEventListener('vrdisplaydisconnect', this.exitVRTrueBound);
       }
     },
 
@@ -74537,7 +74577,8 @@ module.exports.AScene = registerElement('a-scene', {
             throw new Error('Failed to enter VR mode (`requestPresent`).');
           }
         }
-      }
+      },
+      writable: window.debug
     },
      /**
      * Call `exitPresent` if WebVR or WebVR polyfill.
@@ -74586,7 +74627,8 @@ module.exports.AScene = registerElement('a-scene', {
             throw new Error('Failed to exit VR mode (`exitPresent`).');
           }
         }
-      }
+      },
+      writable: window.debug
     },
 
     /**
@@ -76626,7 +76668,7 @@ _dereq_('./core/a-mixin');
 _dereq_('./extras/components/');
 _dereq_('./extras/primitives/');
 
-console.log('A-Frame Version: 0.6.1 (Date 09-08-2017, Commit #5010ad6)');
+console.log('A-Frame Version: 0.6.1 (Date 12-08-2017, Commit #188a9ef)');
 console.log('three Version:', pkg.dependencies['three']);
 console.log('WebVR Polyfill Version:', pkg.dependencies['webvr-polyfill']);
 
@@ -78084,21 +78126,25 @@ module.exports.System = registerSystem('shadow', {
 
 },{"../core/system":136,"../lib/three":174,"../utils/bind":191}],190:[function(_dereq_,module,exports){
 var registerSystem = _dereq_('../core/system').registerSystem;
-var trackedControlsUtils = _dereq_('../utils/tracked-controls');
 var utils = _dereq_('../utils');
 
 /**
  * Tracked controls system.
- * It maintains a list with the available tracked controllers
+ * Maintain list with available tracked controllers.
  */
 module.exports.System = registerSystem('tracked-controls', {
   init: function () {
     var self = this;
+
     this.controllers = [];
-    this.lastControllersUpdate = 0;
-    // Throttle the (renamed) tick handler to minimum 10ms interval.
-    this.tick = utils.throttle(this.throttledTick, 10, this);
+
+    // Throttle to every 500ms.
+    this.tick = utils.throttle(this.tick, 500, this);
+
+    this.updateControllerList();
+
     if (!navigator.getVRDisplays) { return; }
+
     this.sceneEl.addEventListener('enter-vr', function () {
       navigator.getVRDisplays().then(function (displays) {
         if (displays.length) { self.vrDisplay = displays[0]; }
@@ -78106,25 +78152,39 @@ module.exports.System = registerSystem('tracked-controls', {
     });
   },
 
-  updateControllerList: function () {
-    var controllers = this.controllers = [];
-    var gamepads = trackedControlsUtils.getGamepadsByPrefix('');
-    for (var i = 0; i < gamepads.length; i++) {
-      var gamepad = gamepads[i];
-      if (gamepad && gamepad.pose) { controllers.push(gamepad); }
-    }
+  tick: function () {
+    this.updateControllerList();
   },
 
   /**
-   * Update controller list every 10 miliseconds.
+   * Update controller list.
    */
-  throttledTick: function () {
-    this.updateControllerList();
-    this.sceneEl.emit('controllersupdated', { controllers: this.controllers });
+  updateControllerList: function () {
+    var controllers = this.controllers;
+    var gamepad;
+    var gamepads;
+    var i;
+    var prevCount;
+
+    gamepads = navigator.getGamepads && navigator.getGamepads();
+    if (!gamepads) { return; }
+
+    prevCount = controllers.length;
+    controllers.length = 0;
+    for (i = 0; i < gamepads.length; ++i) {
+      gamepad = gamepads[i];
+      if (gamepad && gamepad.pose) {
+        controllers.push(gamepad);
+      }
+    }
+
+    if (controllers.length !== prevCount) {
+      this.el.emit('controllersupdated', undefined, false);
+    }
   }
 });
 
-},{"../core/system":136,"../utils":197,"../utils/tracked-controls":201}],191:[function(_dereq_,module,exports){
+},{"../core/system":136,"../utils":197}],191:[function(_dereq_,module,exports){
 /**
  * Faster version of Function.prototype.bind
  * @param {Function} fn - Function to wrap.
@@ -79146,37 +79206,14 @@ var DEFAULT_HANDEDNESS = _dereq_('../constants').DEFAULT_HANDEDNESS;
 var AXIS_LABELS = ['x', 'y', 'z', 'w'];
 
 /**
- * Return enumerated gamepads matching id prefix.
- *
- * @param {object} idPrefix - prefix to match in gamepad id, if any.
- */
-module.exports.getGamepadsByPrefix = function (idPrefix) {
-  var gamepadsList = [];
-  var gamepad;
-  var gamepads = navigator.getGamepads && navigator.getGamepads();
-  if (!gamepads) { return gamepadsList; }
-
-  for (var i = 0; i < gamepads.length; ++i) {
-    gamepad = gamepads[i];
-    // need to check that gamepad is valid, since browsers may return array of null values
-    if (gamepad) {
-      if (!idPrefix || gamepad.id.indexOf(idPrefix) === 0) {
-        gamepadsList.push(gamepad);
-      }
-    }
-  }
-  return gamepadsList;
-};
-
-/**
  * Called on controller component `.play` handlers.
  * Check if controller matches parameters and inject tracked-controls component.
  * Handle event listeners.
  * Generate controllerconnected or controllerdisconnected events.
  *
- * @param {object} component - the tracked controls component.
- * @param {object} idPrefix - prefix to match in gamepad id, if any.
- * @param {object} queryObject - map of values to match (hand; index among controllers with idPrefix)
+ * @param {object} component - Tracked controls component.
+ * @param {object} idPrefix - Prefix to match in gamepad id if any.
+ * @param {object} queryObject - Map of values to match.
  */
 module.exports.checkControllerPresentAndSetup = function (component, idPrefix, queryObject) {
   var el = component.el;
@@ -79206,31 +79243,29 @@ module.exports.checkControllerPresentAndSetup = function (component, idPrefix, q
 };
 
 /**
- * Enumerate controllers (as built by system tick, e.g. that have pose) and check if they match parameters.
+ * Enumerate controller (that have pose) and check if they match parameters.
  *
- * @param {object} component - the tracked controls component.
- * @param {object} idPrefix - prefix to match in gamepad id, if any.
- * @param {object} queryObject - map of values to match (hand; index among controllers with idPrefix)
+ * @param {object} component - Tracked controls component.
+ * @param {object} idPrefix - Prefix to match in gamepad id if any.
+ * @param {object} queryObject - Map of values to match.
  */
 function isControllerPresent (component, idPrefix, queryObject) {
-  var isPresent = false;
-  var index = 0;
   var gamepad;
-  var isPrefixMatch;
   var gamepads;
+  var i;
+  var index = 0;
+  var isPrefixMatch;
+  var isPresent = false;
   var sceneEl = component.el.sceneEl;
+  var trackedControlsSystem;
 
-  var trackedControlsSystem = sceneEl && sceneEl.systems['tracked-controls'];
-  if (!trackedControlsSystem) { return isPresent; }
+  trackedControlsSystem = sceneEl && sceneEl.systems['tracked-controls'];
+  if (!trackedControlsSystem) { return false; }
+
   gamepads = trackedControlsSystem.controllers;
-  if (!gamepads || gamepads.length === 0) {
-    trackedControlsSystem.updateControllerList();
-    gamepads = trackedControlsSystem.controllers;
-  }
+  if (!gamepads.length) { return false; }
 
-  if (!gamepads) { return isPresent; }
-
-  for (var i = 0; i < gamepads.length; ++i) {
+  for (i = 0; i < gamepads.length; ++i) {
     gamepad = gamepads[i];
     isPrefixMatch = (!idPrefix || idPrefix === '' || gamepad.id.indexOf(idPrefix) === 0);
     isPresent = isPrefixMatch;
@@ -79238,10 +79273,12 @@ function isControllerPresent (component, idPrefix, queryObject) {
       isPresent = (gamepad.hand || DEFAULT_HANDEDNESS) === queryObject.hand;
     }
     if (isPresent && queryObject.index) {
-      isPresent = index === queryObject.index; // need to use count of gamepads with idPrefix
+      // Need to use count of gamepads with idPrefix.
+      isPresent = index === queryObject.index;
     }
     if (isPresent) { break; }
-    if (isPrefixMatch) { index++; } // update count of gamepads with idPrefix
+    // Update count of gamepads with idPrefix.
+    if (isPrefixMatch) { index++; }
   }
 
   return isPresent;
@@ -79250,25 +79287,38 @@ function isControllerPresent (component, idPrefix, queryObject) {
 module.exports.isControllerPresent = isControllerPresent;
 
 /**
- * Emit specific moved event(s) if axes changed, based on original axismoved event.
+ * Emit specific `moved` event(s) if axes changed based on original axismoved event.
  *
- * @param {object} self - the component in use (e.g. oculus-touch-controls, vive-controls...)
- * @param {array} axesMapping - the axes mapping to process
- * @param {object} evt - the event to process
+ * @param {object} component - Controller component in use.
+ * @param {array} axesMapping - For example `{thumbstick: [0, 1]}`.
+ * @param {object} evt - Event to process.
  */
-module.exports.emitIfAxesChanged = function (self, axesMapping, evt) {
-  Object.keys(axesMapping).forEach(function (key) {
-    var axes = axesMapping[key];
-    var changed = evt.detail.changed;
-    // If no changed axes given at all, or at least one changed value is true in the array,
-    if (axes.reduce(function (b, axis) { return b || changed[axis]; }, !changed)) {
-      // An axis has changed, so emit the specific moved event, detailing axis values.
-      var detail = {};
-      axes.forEach(function (axis) { detail[AXIS_LABELS[axis]] = evt.detail.axis[axis]; });
-      self.el.emit(key + 'moved', detail);
-      // If we updated the model based on axis values, that call would go here.
+module.exports.emitIfAxesChanged = function (component, axesMapping, evt) {
+  var axes;
+  var buttonTypes;
+  var changed;
+  var detail;
+  var i;
+  var j;
+
+  buttonTypes = Object.keys(axesMapping);
+  for (i = 0; i < buttonTypes.length; i++) {
+    axes = axesMapping[buttonTypes[i]];
+
+    changed = false;
+    for (j = 0; j < axes.length; j++) {
+      if (evt.detail.changed[j]) { changed = true; }
     }
-  });
+
+    if (!changed) { continue; }
+
+    // Axis has changed. Emit the specific moved event with axis values in detail.
+    detail = {};
+    for (j = 0; j < axes.length; j++) {
+      detail[AXIS_LABELS[axes[j]]] = evt.detail.axis[axes[j]];
+    }
+    component.el.emit(buttonTypes[i] + 'moved', detail);
+  }
 };
 
 },{"../constants":117}],202:[function(_dereq_,module,exports){
