@@ -185,6 +185,43 @@ suite('Component', function () {
       assert.equal(data.depthTest, false);
       assert.equal(data.color, 'red');
     });
+
+    test('returns data for single-prop if default is null', function () {
+      var el = document.createElement('a-entity');
+      registerComponent('test', {
+        schema: {default: null}
+      });
+      el.setAttribute('test', '');
+      assert.equal(el.components.test.buildData(), null);
+      assert.equal(el.components.test.buildData(null), null);
+      assert.equal(el.components.test.buildData('foo'), 'foo');
+    });
+
+    test('returns data for multi-prop if default is null with previousData', function () {
+      var el = document.createElement('a-entity');
+      registerComponent('test', {
+        schema: {
+          foo: {default: null}
+        }
+      });
+      el.setAttribute('test', '');
+      el.components.test.attrValue = {foo: null};
+      assert.equal(el.components.test.buildData().foo, null);
+      assert.equal(el.components.test.buildData({foo: null}).foo, null);
+      assert.equal(el.components.test.buildData({foo: 'foo'}).foo, 'foo');
+    });
+
+    test('clones array property type', function () {
+      var array = ['a'];
+      var data;
+      var el;
+      registerComponent('test', {schema: {default: array}});
+      el = document.createElement('a-entity');
+      el.setAttribute('test', '');
+      data = el.components.test.buildData();
+      assert.equal(data[0], 'a');
+      assert.notEqual(data, array);
+    });
   });
 
   suite('updateProperties', function () {
@@ -409,8 +446,7 @@ suite('Component', function () {
       var attrValue = el.components.dummy.attrValue;
       assert.notEqual(data, attrValue);
       assert.equal(data.color, attrValue.color);
-      // The HTMLElement is not cloned in attrValue
-      // a reference is shared instead.
+      // HTMLElement not cloned in attrValue, reference is shared instead.
       assert.equal(data.el, attrValue.el);
       assert.equal(data.el.constructor, HTMLHeadElement);
       assert.notEqual(data.direction, attrValue.direction);
@@ -421,8 +457,7 @@ suite('Component', function () {
         direction: {x: 1, y: 1, z: 1}
       });
       data = el.getAttribute('dummy');
-      // The HTMLElement is not cloned in attrValue
-      // a reference is shared instead.
+      // HTMLElement not cloned in attrValue, reference is shared instead.
       assert.equal(data.el.constructor, HTMLHeadElement);
       assert.equal(data.el, el.components.dummy.attrValue.el);
     });
@@ -922,6 +957,20 @@ suite('Component', function () {
       dummyComponent.pause();
       sinon.assert.calledOnce(this.pauseStub);
     });
+  });
+
+  test('applies default array property types with no defined value', function (done) {
+    var el;
+    registerComponent('test', {
+      schema: {default: ['foo']},
+
+      update: function () {
+        assert.equal(this.data[0], 'foo');
+        done();
+      }
+    });
+    el = entityFactory();
+    el.setAttribute('test', '');
   });
 });
 
