@@ -234,6 +234,7 @@ the data to modify the entity. The handlers will usually interact with the
 | update       | Called both when the component is initialized and whenever any of the component's properties is updated (e.g, via *setAttribute*). Used to modify the entity.                                                             |
 | remove       | Called when the component is removed from the entity (e.g., via *removeAttribute*) or when the entity is detached from the scene. Used to undo all previous modifications to the entity.                                  |
 | tick         | Called on each render loop or tick of the scene. Used for continuous changes or checks.                                                                                                                                   |
+| tock         | Called on each render loop or tick of the scene after the scene has rendererd. Used for post processing effects or other logic that needs to happen after the scene has been drawn.                                                                                                                                   |
 | play         | Called whenever the scene or entity plays to add any background or dynamic behavior. Also called once when the component is initialized. Used to start or resume behavior.                                                |
 | pause        | Called whenever the scene or entity pauses to remove any background or dynamic behavior. Also called when the component is removed from the entity or when the entity is detached from the scene. Used to pause behavior. |
 | updateSchema | Called whenever any of the component's properties is updated. Can be used to dynamically modify the schema.                                                                                                               |
@@ -394,6 +395,12 @@ AFRAME.registerComponent('tracked-controls', {
   // ...
 });
 ```
+
+### `.tock (time, timeDelta)`
+
+Identical to the tick method but invoked after the scene has rendered. 
+
+The `tock` handler is used to run logic that needs access to the drawn scene before it's pushed into the headset like postprocessing effects.
 
 ### `.pause ()`
 

@@ -91,6 +91,7 @@ Inspector, and play with all the possible values to see the effects instantly!
 | width         | Width in meters.                                                                                                                                      | *derived from geometry if exists* |
 | wrapCount     | Number of characters before wrapping text (more or less).                                                                                             | 40                                |
 | wrapPixels    | Number of pixels before wrapping text.                                                                                                                | *derived from wrapCount*          |
+| xOffset       | X-offset to apply to add padding.                                                                                                                     | 0                                 |
 | zOffset       | Z-offset to apply to avoid Z-fighting if using with a geometry as a background.                                                                       | 0.001                             |
 
 [threetextusage]: https://github.com/Jam3/three-bmfont-text#usage
@@ -183,6 +184,14 @@ To change the size of the text, we can:
 ![Sizing][sizingimg]
 
 Text can be wrapped by specifying width in A-Frame units.
+
+In case we need to do custom layout or need to know the bounds of the text, the
+output length of the text can be pre-calculated dynamically with something
+like:
+
+```
+totalWidth = data.value.length * (data.width / data.wrapCount)
+```
 
 ### Auto-Scaling
 

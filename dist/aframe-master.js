@@ -66301,6 +66301,9 @@ module.exports.Component = registerComponent('cursor', {
       self.canvasBounds = self.el.sceneEl.canvas.getBoundingClientRect();
     }, 200);
 
+    this.eventDetail = {};
+    this.intersectedEventDetail = {cursorEl: this.el};
+
     // Bind methods.
     this.onCursorDown = bind(this.onCursorDown, this);
     this.onCursorUp = bind(this.onCursorUp, this);
@@ -66452,14 +66455,14 @@ module.exports.Component = registerComponent('cursor', {
    */
   onCursorDown: function (evt) {
     // Raycast again for touch.
-    if (this.data.rayOrigin === 'mouse') {
+    if (this.data.rayOrigin === 'mouse' && evt.type === 'touchstart') {
       this.onMouseMove(evt);
       this.el.components.raycaster.checkIntersections();
+      evt.preventDefault();
     }
 
     this.twoWayEmit(EVENTS.MOUSEDOWN);
     this.cursorDownEl = this.intersectedEl;
-    if (evt.type === 'touchstart') { evt.preventDefault(); }
   },
 
   /**
@@ -66475,7 +66478,8 @@ module.exports.Component = registerComponent('cursor', {
     // If intersected entity has changed since the cursorDown, still emit mouseUp on the
     // previously cursorUp entity.
     if (this.cursorDownEl && this.cursorDownEl !== this.intersectedEl) {
-      this.cursorDownEl.emit(EVENTS.MOUSEUP, {cursorEl: this.el, intersection: null});
+      this.intersectedEventDetail.intersection = null;
+      this.cursorDownEl.emit(EVENTS.MOUSEUP, this.intersectedEventDetail);
     }
 
     if (!this.data.fuse && this.intersectedEl && this.cursorDownEl === this.intersectedEl) {
@@ -66569,9 +66573,15 @@ module.exports.Component = registerComponent('cursor', {
     var el = this.el;
     var intersectedEl = this.intersectedEl;
     var intersection = this.intersection;
-    el.emit(evtName, {intersectedEl: intersectedEl, intersection: intersection});
+
+    this.eventDetail.intersectedEl = intersectedEl;
+    this.eventDetail.intersection = intersection;
+    el.emit(evtName, this.eventDetail);
+
     if (!intersectedEl) { return; }
-    intersectedEl.emit(evtName, {cursorEl: el, intersection: intersection});
+
+    this.intersectedEventDetail.intersection = intersection;
+    intersectedEl.emit(evtName, this.intersectedEventDetail);
   }
 });
 
@@ -69258,6 +69268,8 @@ module.exports.Component = registerComponent('raycaster', {
     this.clearedIntersectedEls = [];
     this.unitLineEndVec3 = new THREE.Vector3();
     this.intersectedEls = [];
+    this.newIntersectedEls = [];
+    this.newIntersections = [];
     this.objects = [];
     this.prevCheckTime = undefined;
     this.prevIntersectedEls = [];
@@ -69266,10 +69278,12 @@ module.exports.Component = registerComponent('raycaster', {
     this.setDirty = this.setDirty.bind(this);
     this.observer = new MutationObserver(this.setDirty);
     this.dirty = true;
-    this.intersectionClearedDetail = {clearedEls: this.clearedIntersectedEls};
     this.lineEndVec3 = new THREE.Vector3();
     this.otherLineEndVec3 = new THREE.Vector3();
     this.lineData = {end: this.lineEndVec3};
+
+    this.intersectedClearedDetail = {el: this.el};
+    this.intersectionClearedDetail = {clearedEls: this.clearedIntersectedEls};
   },
 
   /**
@@ -69287,10 +69301,11 @@ module.exports.Component = registerComponent('raycaster', {
     // Draw line.
     if (data.showLine &&
         (data.far !== oldData.far || data.origin !== oldData.origin ||
-         data.direction !== oldData.direction || data.showLine !== oldData.showLine)) {
+         data.direction !== oldData.direction || !oldData.showLine)) {
       this.unitLineEndVec3.copy(data.origin).add(data.direction).normalize();
       this.drawLine();
     }
+
     if (!data.showLine && oldData.showLine) {
       el.removeAttribute('line');
     }
@@ -69384,8 +69399,11 @@ module.exports.Component = registerComponent('raycaster', {
       var intersectedEls = this.intersectedEls;
       var intersection;
       var lineLength;
+      var newIntersectedEls = this.newIntersectedEls;
+      var newIntersections = this.newIntersections;
       var prevIntersectedEls = this.prevIntersectedEls;
       var rawIntersections;
+      var self = this;
 
       if (!this.data.enabled) { return; }
 
@@ -69401,6 +69419,7 @@ module.exports.Component = registerComponent('raycaster', {
 
       // Only keep intersections against objects that have a reference to an entity.
       intersections.length = 0;
+      intersectedEls.length = 0;
       for (i = 0; i < rawIntersections.length; i++) {
         intersection = rawIntersections[i];
         // Don't intersect with own line.
@@ -69409,53 +69428,61 @@ module.exports.Component = registerComponent('raycaster', {
         }
         if (intersection.object.el) {
           intersections.push(intersection);
+          intersectedEls.push(intersection.object.el);
         }
       }
 
-      // Update intersectedEls.
-      intersectedEls.length = intersections.length;
+      // Get newly intersected entities.
+      newIntersections.length = 0;
+      newIntersectedEls.length = 0;
       for (i = 0; i < intersections.length; i++) {
-        intersectedEls[i] = intersections[i].object.el;
-      }
-
-      // Emit intersected on intersected entity per intersected entity.
-      for (i = 0; i < intersections.length; i++) {
-        intersections[i].object.el.emit('raycaster-intersected', {
-          el: el,
-          intersection: intersections[i]
-        });
-      }
-
-      // Emit all intersections at once on raycasting entity.
-      if (intersections.length) {
-        el.emit('raycaster-intersection', {
-          els: intersectedEls,
-          intersections: intersections
-        });
+        if (prevIntersectedEls.indexOf(intersections[i].object.el) === -1) {
+          newIntersections.push(intersections[i]);
+          newIntersectedEls.push(intersections[i].object.el);
+        }
       }
 
       // Emit intersection cleared on both entities per formerly intersected entity.
       clearedIntersectedEls.length = 0;
       for (i = 0; i < prevIntersectedEls.length; i++) {
         if (intersectedEls.indexOf(prevIntersectedEls[i]) !== -1) { continue; }
-        prevIntersectedEls[i].emit('raycaster-intersected-cleared', {el: el});
+        prevIntersectedEls[i].emit('raycaster-intersected-cleared',
+                                   this.intersectedClearedDetail);
         clearedIntersectedEls.push(prevIntersectedEls[i]);
       }
       if (clearedIntersectedEls.length) {
         el.emit('raycaster-intersection-cleared', this.intersectionClearedDetail);
       }
 
-      // Update line length.
-      if (data.showLine) {
-        if (intersections.length) {
-          if (intersections[0].object.el === el && intersections[1]) {
-            lineLength = intersections[1].distance;
-          } else {
-            lineLength = intersections[0].distance;
-          }
-        }
-        this.drawLine(lineLength);
+      // Emit intersected on intersected entity per intersected entity.
+      for (i = 0; i < newIntersectedEls.length; i++) {
+        newIntersectedEls[i].emit('raycaster-intersected', {
+          el: el,
+          intersection: newIntersections[i]
+        });
       }
+
+      // Emit all intersections at once on raycasting entity.
+      if (newIntersections.length) {
+        el.emit('raycaster-intersection', {
+          els: newIntersectedEls,
+          intersections: newIntersections
+        });
+      }
+
+      // Update line length.
+      setTimeout(function () {
+        if (self.data.showLine) {
+          if (intersections.length) {
+            if (intersections[0].object.el === el && intersections[1]) {
+              lineLength = intersections[1].distance;
+            } else {
+              lineLength = intersections[0].distance;
+            }
+          }
+          self.drawLine(lineLength);
+        }
+      });
     };
   })(),
 
@@ -70827,6 +70854,8 @@ module.exports.Component = registerComponent('text', {
     wrapCount: {type: 'number', default: 40},
     // `wrapPixels` will wrap using bmfont pixel units (e.g., dejavu's is 32 pixels).
     wrapPixels: {type: 'number'},
+    // `xOffset` to add padding.
+    xOffset: {type: 'number', default: 0},
     // `yOffset` to adjust generated fonts from tools that may have incorrect metrics.
     yOffset: {type: 'number', default: 0},
     // `zOffset` will provide a small z offset to avoid z-fighting.
@@ -71064,7 +71093,7 @@ module.exports.Component = registerComponent('text', {
     }
 
     // Position and scale mesh to apply layout.
-    mesh.position.x = x * textScale;
+    mesh.position.x = x * textScale + data.xOffset;
     mesh.position.y = y * textScale;
     // Place text slightly in front to avoid Z-fighting.
     mesh.position.z = data.zOffset;
@@ -78181,7 +78210,7 @@ _dereq_('./core/a-mixin');
 _dereq_('./extras/components/');
 _dereq_('./extras/primitives/');
 
-console.log('A-Frame Version: 0.7.0 (Date 2017-11-21, Commit #52d7f1f)');
+console.log('A-Frame Version: 0.7.0 (Date 2017-12-07, Commit #21cc891)');
 console.log('three Version:', pkg.dependencies['three']);
 console.log('WebVR Polyfill Version:', pkg.dependencies['webvr-polyfill']);
 
@@ -80246,27 +80275,47 @@ module.exports.deepEqual = deepEqual;
  *   Difference object where set of keys note which values were not equal, and values are
  *   `b`'s values.
  */
-module.exports.diff = function (a, b) {
-  var diff = {};
-  var keys = Object.keys(a);
-  if (!b) { return diff; }
-  Object.keys(b).forEach(function collectKeys (bKey) {
-    if (keys.indexOf(bKey) === -1) {
-      keys.push(bKey);
+module.exports.diff = (function () {
+  var keys = [];
+
+  return function (a, b, targetObject) {
+    var aVal;
+    var bVal;
+    var bKey;
+    var diff;
+    var key;
+    var i;
+    var isComparingObjects;
+
+    diff = targetObject || {};
+
+    // Collect A keys.
+    keys.length = 0;
+    for (key in a) { keys.push(key); }
+
+    if (!b) { return diff; }
+
+    // Collect B keys.
+    for (bKey in b) {
+      if (keys.indexOf(bKey) === -1) {
+        keys.push(bKey);
+      }
     }
-  });
-  keys.forEach(function doDiff (key) {
-    var aVal = a[key];
-    var bVal = b[key];
-    var isComparingObjects = aVal && bVal &&
-                             aVal.constructor === Object && bVal.constructor === Object;
-    if ((isComparingObjects && !deepEqual(aVal, bVal)) ||
-        (!isComparingObjects && aVal !== bVal)) {
-      diff[key] = bVal;
+
+    for (i = 0; i < keys.length; i++) {
+      key = keys[i];
+      aVal = a[key];
+      bVal = b[key];
+      isComparingObjects = aVal && bVal &&
+                          aVal.constructor === Object && bVal.constructor === Object;
+      if ((isComparingObjects && !deepEqual(aVal, bVal)) ||
+          (!isComparingObjects && aVal !== bVal)) {
+        diff[key] = bVal;
+      }
     }
-  });
-  return diff;
-};
+    return diff;
+  };
+})();
 
 /**
  * Returns whether we should capture this keyboard event for keyboard shortcuts.
