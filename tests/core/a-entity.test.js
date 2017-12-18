@@ -944,6 +944,22 @@ suite('a-entity', function () {
       el.object3D.scale.set(1, 2, 3);
       assert.shallowDeepEqual(el.getAttribute('scale'), {x: 1, y: 2, z: 3});
     });
+
+    test('returns visible previously set with setAttribute', function () {
+      var el = this.el;
+      el.setAttribute('visible', false);
+      assert.equal(el.getAttribute('visible'), false);
+      el.setAttribute('visible', true);
+      assert.equal(el.getAttribute('visible'), true);
+    });
+
+    test('returns visible set by modifying the object3D visible', function () {
+      var el = this.el;
+      el.object3D.visible = false;
+      assert.equal(el.getAttribute('visible'), false);
+      el.object3D.visible = true;
+      assert.equal(el.getAttribute('visible'), true);
+    });
   });
 
   suite('removeAttribute', function () {
@@ -981,7 +997,7 @@ suite('a-entity', function () {
       assert.ok('position' in el.components);
     });
 
-    test('does not remove mixed-in component', function () {
+    test('can remove mixed-in component', function () {
       var el = this.el;
       var mixinId = 'geometry';
       mixinFactory(mixinId, {geometry: 'primitive: box'});
@@ -989,9 +1005,9 @@ suite('a-entity', function () {
       el.setAttribute('geometry', 'primitive: sphere');
       assert.ok('geometry' in el.components);
       el.removeAttribute('geometry');
-      assert.notEqual(el.getAttribute('geometry'), null);
+      assert.equal(el.getAttribute('geometry'), null);
       // Geometry still exists since it is mixed in.
-      assert.ok('geometry' in el.components);
+      assert.notOk('geometry' in el.components);
     });
 
     test('resets a component property', function () {
@@ -1220,10 +1236,10 @@ suite('a-entity', function () {
       var sceneEl = el.sceneEl;
       var component;
       el.play();
-      el.setAttribute('look-controls', '');
-      component = el.components['look-controls'];
+      el.setAttribute('raycaster', '');
+      component = el.components['raycaster'];
       assert.notEqual(sceneEl.behaviors.tick.indexOf(component), -1);
-      el.removeAttribute('look-controls');
+      el.removeAttribute('raycaster');
       assert.equal(sceneEl.behaviors.tick.indexOf(component), -1);
     });
 
