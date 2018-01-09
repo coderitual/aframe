@@ -37,7 +37,6 @@ module.exports.AScene = registerElement('a-scene', {
   prototype: Object.create(AEntity.prototype, {
     defaultComponents: {
       value: {
-        'background': '',
         'inspector': '',
         'keyboard-shortcuts': '',
         'screenshot': '',
@@ -286,7 +285,7 @@ module.exports.AScene = registerElement('a-scene', {
           }
         }
       },
-      writable: window.debug
+      writable: true
     },
      /**
      * Call `exitPresent` if WebVR or WebVR polyfill.
@@ -339,7 +338,7 @@ module.exports.AScene = registerElement('a-scene', {
           }
         }
       },
-      writable: window.debug
+      writable: true
     },
 
     pointerRestricted: {
@@ -480,7 +479,7 @@ module.exports.AScene = registerElement('a-scene', {
         // Notify renderer of size change.
         this.renderer.setSize(size.width, size.height, false);
       },
-      writable: window.debug
+      writable: true
     },
 
     setupRenderer: {
