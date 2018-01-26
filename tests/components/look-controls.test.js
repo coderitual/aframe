@@ -7,17 +7,8 @@ suite('look-controls', function () {
   setup(function (done) {
     var el = this.sceneEl = document.createElement('a-scene');
     document.body.appendChild(el);
-    el.addEventListener('loaded', function () {
+    el.addEventListener('camera-ready', function () {
       done();
-    });
-  });
-
-  suite('update', function () {
-    test('can update userHeight', function () {
-      var cameraEl = this.sceneEl.camera.el;
-      assert.shallowDeepEqual(cameraEl.getAttribute('position'), {x: 0, y: 1.6, z: 0});
-      cameraEl.setAttribute('look-controls', 'userHeight', 2.5);
-      assert.shallowDeepEqual(cameraEl.getAttribute('position'), {x: 0, y: 2.5, z: 0});
     });
   });
 
@@ -60,6 +51,42 @@ suite('look-controls', function () {
       });
       window.dispatchEvent(new Event('mouseup'));
     });
+
+    test('requests pointer lock on mousedown', function (done) {
+      var canvasEl = this.sceneEl.canvas;
+
+      var requestPointerLock = this.sinon.spy(canvasEl, 'requestPointerLock');
+
+      process.nextTick(function () {
+        assert.ok(requestPointerLock.called);
+        document.body.classList.remove(GRABBING_CLASS);
+        done();
+      });
+
+      var event = new Event('mousedown');
+      event.button = 0;
+      canvasEl.dispatchEvent(event);
+    });
+
+    test('does not request pointer lock when option is disabled', function (done) {
+      var sceneEl = this.sceneEl;
+      var canvasEl = sceneEl.canvas;
+      var cameraEl = sceneEl.camera.el;
+
+      var requestPointerLock = this.sinon.spy(canvasEl, 'requestPointerLock');
+
+      cameraEl.setAttribute('look-controls', {pointerLockEnabled: false});
+
+      process.nextTick(function () {
+        assert.notOk(requestPointerLock.called);
+        document.body.classList.remove(GRABBING_CLASS);
+        done();
+      });
+
+      var event = new Event('mousedown');
+      event.button = 0;
+      canvasEl.dispatchEvent(event);
+    });
   });
 
   suite('saveCameraPose', function () {
@@ -82,33 +109,6 @@ suite('look-controls', function () {
       lookControlsComponent.hasPositionalTracking = false;
       sceneEl.emit('enter-vr');
       assert.notOk(lookControlsComponent.savedPose);
-    });
-  });
-
-  suite('addHeightOffset', function () {
-    test('adds userHeight offset', function () {
-      var cameraEl = this.sceneEl.camera.el;
-      assert.shallowDeepEqual(cameraEl.getAttribute('position'), {x: 0, y: 1.6, z: 0});
-    });
-  });
-
-  suite('removeCameraPose (enter VR)', function () {
-    test('removes the default offset w/ positional tracking', function () {
-      var sceneEl = this.sceneEl;
-      var cameraEl = sceneEl.camera.el;
-      cameraEl.components['look-controls'].hasPositionalTracking = true;
-      assert.shallowDeepEqual(cameraEl.getAttribute('position'), {x: 0, y: 1.6, z: 0});
-      sceneEl.emit('enter-vr');
-      assert.shallowDeepEqual(cameraEl.getAttribute('position'), {x: 0, y: 0, z: 0});
-    });
-
-    test('does not remove the default offset w/o positional tracking', function () {
-      var sceneEl = this.sceneEl;
-      var cameraEl = sceneEl.camera.el;
-      cameraEl.components['look-controls'].hasPositionalTracking = false;
-      assert.shallowDeepEqual(cameraEl.getAttribute('position'), {x: 0, y: 1.6, z: 0});
-      sceneEl.emit('enter-vr');
-      assert.shallowDeepEqual(cameraEl.getAttribute('position'), {x: 0, y: 1.6, z: 0});
     });
   });
 

@@ -21,8 +21,8 @@ module.exports.Component = registerComponent('look-controls', {
     enabled: {default: true},
     touchEnabled: {default: true},
     hmdEnabled: {default: true},
-    reverseMouseDrag: {default: false},
-    userHeight: {default: 1.6}
+    pointerLockEnabled: {default: true},
+    reverseMouseDrag: {default: false}
   },
 
   init: function () {
@@ -38,6 +38,7 @@ module.exports.Component = registerComponent('look-controls', {
     this.rotation = {};
     this.deltaRotation = {};
     this.savedPose = null;
+    this.pointerLocked = false;
     this.setupMouseControls();
     this.bindMethods();
 
@@ -47,9 +48,6 @@ module.exports.Component = registerComponent('look-controls', {
 
   update: function (oldData) {
     var data = this.data;
-
-    // Update height offset.
-    this.addHeightOffset(oldData.userHeight);
 
     // Disable grab cursor classes if no longer enabled.
     if (data.enabled !== oldData.enabled) {
@@ -61,12 +59,17 @@ module.exports.Component = registerComponent('look-controls', {
       this.pitchObject.rotation.set(0, 0, 0);
       this.yawObject.rotation.set(0, 0, 0);
     }
+
+    if (oldData && !data.pointerLockEnabled !== oldData.pointerLockEnabled) {
+      this.removeEventListeners();
+      this.addEventListeners();
+      if (this.pointerLocked) { document.exitPointerLock(); }
+    }
   },
 
   tick: function (t) {
     var data = this.data;
     if (!data.enabled) { return; }
-    this.updatePosition();
     this.updateOrientation();
   },
 
@@ -91,6 +94,8 @@ module.exports.Component = registerComponent('look-controls', {
     this.onTouchEnd = bind(this.onTouchEnd, this);
     this.onEnterVR = bind(this.onEnterVR, this);
     this.onExitVR = bind(this.onExitVR, this);
+    this.onPointerLockChange = bind(this.onPointerLockChange, this);
+    this.onPointerLockError = bind(this.onPointerLockError, this);
   },
 
  /**
@@ -130,6 +135,13 @@ module.exports.Component = registerComponent('look-controls', {
     // sceneEl events.
     sceneEl.addEventListener('enter-vr', this.onEnterVR);
     sceneEl.addEventListener('exit-vr', this.onExitVR);
+
+    // Pointer Lock events.
+    if (this.data.pointerLockEnabled) {
+      document.addEventListener('pointerlockchange', this.onPointerLockChange, false);
+      document.addEventListener('mozpointerlockchange', this.onPointerLockChange, false);
+      document.addEventListener('pointerlockerror', this.onPointerLockError, false);
+    }
   },
 
   /**
@@ -143,18 +155,22 @@ module.exports.Component = registerComponent('look-controls', {
 
     // Mouse events.
     canvasEl.removeEventListener('mousedown', this.onMouseDown);
-    canvasEl.removeEventListener('mousemove', this.onMouseMove);
-    canvasEl.removeEventListener('mouseup', this.onMouseUp);
-    canvasEl.removeEventListener('mouseout', this.onMouseUp);
+    window.removeEventListener('mousemove', this.onMouseMove);
+    window.removeEventListener('mouseup', this.onMouseUp);
 
     // Touch events.
     canvasEl.removeEventListener('touchstart', this.onTouchStart);
-    canvasEl.removeEventListener('touchmove', this.onTouchMove);
-    canvasEl.removeEventListener('touchend', this.onTouchEnd);
+    window.removeEventListener('touchmove', this.onTouchMove);
+    window.removeEventListener('touchend', this.onTouchEnd);
 
     // sceneEl events.
     sceneEl.removeEventListener('enter-vr', this.onEnterVR);
     sceneEl.removeEventListener('exit-vr', this.onExitVR);
+
+    // Pointer Lock events.
+    document.removeEventListener('pointerlockchange', this.onPointerLockChange, false);
+    document.removeEventListener('mozpointerlockchange', this.onPointerLockChange, false);
+    document.removeEventListener('pointerlockerror', this.onPointerLockError, false);
   },
 
   /**
@@ -183,52 +199,6 @@ module.exports.Component = registerComponent('look-controls', {
   },
 
   /**
-   * Handle positional tracking.
-   */
-  updatePosition: function () {
-    var el = this.el;
-    var currentHMDPosition;
-    var currentPosition;
-    var position = this.position;
-    var previousHMDPosition = this.previousHMDPosition;
-    var sceneEl = this.el.sceneEl;
-
-    if (!sceneEl.is('vr-mode') || !sceneEl.checkHeadsetConnected()) { return; }
-
-    // Calculate change in position.
-    currentHMDPosition = this.calculateHMDPosition();
-    currentPosition = el.getAttribute('position');
-
-    position.copy(currentPosition).sub(previousHMDPosition).add(currentHMDPosition);
-    el.setAttribute('position', position);
-    previousHMDPosition.copy(currentHMDPosition);
-  },
-
-  calculateHMDPosition: (function () {
-    var position = new THREE.Vector3();
-    return function () {
-      var object3D = this.el.object3D;
-      object3D.updateMatrix();
-      position.setFromMatrixPosition(object3D.matrix);
-      return position;
-    };
-  })(),
-
-  /**
-   * Calculate delta rotation for mouse-drag and touch-drag.
-   */
-  calculateDeltaRotation: function () {
-    var currentRotationX = radToDeg(this.pitchObject.rotation.x);
-    var currentRotationY = radToDeg(this.yawObject.rotation.y);
-    this.deltaRotation.x = currentRotationX - (this.previousRotationX || 0);
-    this.deltaRotation.y = currentRotationY - (this.previousRotationY || 0);
-    // Store current rotation for next tick.
-    this.previousRotationX = currentRotationX;
-    this.previousRotationY = currentRotationY;
-    return this.deltaRotation;
-  },
-
-  /**
    * Translate mouse drag into rotation.
    *
    * Dragging up and down rotates the camera around the X-axis (yaw).
@@ -242,7 +212,7 @@ module.exports.Component = registerComponent('look-controls', {
     var movementY;
 
     // Not dragging or not enabled.
-    if (!this.mouseDown || !this.data.enabled) { return; }
+    if (!this.data.enabled || (!this.mouseDown && !this.pointerLocked)) { return; }
 
      // Calculate delta.
     movementX = event.movementX || event.mozMovementX;
@@ -266,9 +236,21 @@ module.exports.Component = registerComponent('look-controls', {
     if (!this.data.enabled) { return; }
     // Handle only primary button.
     if (evt.button !== 0) { return; }
+
+    var sceneEl = this.el.sceneEl;
+    var canvasEl = sceneEl && sceneEl.canvas;
+
     this.mouseDown = true;
     this.previousMouseEvent = evt;
     document.body.classList.add(GRABBING_CLASS);
+
+    if (this.data.pointerLockEnabled && !this.pointerLocked) {
+      if (canvasEl.requestPointerLock) {
+        canvasEl.requestPointerLock();
+      } else if (canvasEl.mozRequestPointerLock) {
+        canvasEl.mozRequestPointerLock();
+      }
+    }
   },
 
   /**
@@ -323,7 +305,6 @@ module.exports.Component = registerComponent('look-controls', {
    */
   onEnterVR: function () {
     this.saveCameraPose();
-    this.removeHeightOffset();
   },
 
   /**
@@ -332,6 +313,20 @@ module.exports.Component = registerComponent('look-controls', {
   onExitVR: function () {
     this.restoreCameraPose();
     this.previousHMDPosition.set(0, 0, 0);
+  },
+
+  /**
+   * Update Pointer Lock state.
+   */
+  onPointerLockChange: function () {
+    this.pointerLocked = !!(document.pointerLockElement || document.mozPointerLockElement);
+  },
+
+  /**
+   * Recover from Pointer Lock error.
+   */
+  onPointerLockError: function () {
+    this.pointerLocked = false;
   },
 
   /**
@@ -357,52 +352,6 @@ module.exports.Component = registerComponent('look-controls', {
       return;
     }
     disableGrabCursor();
-  },
-
-  /**
-   * Offsets the position of the camera to set a human scale perspective
-   * This offset is not necessary when using a headset because the SDK
-   * will return the real user's head height and position.
-   */
-  addHeightOffset: function (oldOffset) {
-    var el = this.el;
-    var currentPosition;
-    var userHeightOffset = this.data.userHeight;
-
-    oldOffset = oldOffset || 0;
-    currentPosition = el.getAttribute('position') || {x: 0, y: 0, z: 0};
-    el.setAttribute('position', {
-      x: currentPosition.x,
-      y: currentPosition.y - oldOffset + userHeightOffset,
-      z: currentPosition.z
-    });
-  },
-
-  /**
-   * Remove the height offset (called when entering VR) since WebVR API gives absolute
-   * position.
-   */
-  removeHeightOffset: function () {
-    var currentPosition;
-    var el = this.el;
-    var hasPositionalTracking;
-    var userHeightOffset = this.data.userHeight;
-
-    // Remove the offset if there is positional tracking when entering VR.
-    // Necessary for fullscreen mode with no headset.
-    // Checking this.hasPositionalTracking to make the value injectable for unit tests.
-    hasPositionalTracking = this.hasPositionalTracking !== undefined
-      ? this.hasPositionalTracking
-      : checkHasPositionalTracking();
-
-    if (!userHeightOffset || !hasPositionalTracking) { return; }
-
-    currentPosition = el.getAttribute('position') || {x: 0, y: 0, z: 0};
-    el.setAttribute('position', {
-      x: currentPosition.x,
-      y: currentPosition.y - userHeightOffset,
-      z: currentPosition.z
-    });
   },
 
   /**
