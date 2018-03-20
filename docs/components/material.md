@@ -337,6 +337,11 @@ visual defects.
 
 To work around this issue, try changing the order of the entities in the HTML.
 
+When using PNG images as cutouts or masks (where part of the image should be
+fully transparent, and the rest fully opaque), try setting `transparent: false`
+and like `alphaTest: 0.5` to solve transparency issues. Play around with the alpha
+test value.
+
 ## Register a Custom Shader Material
 
 We can register custom shader materials for appearances and effects using
@@ -348,7 +353,7 @@ Let's walk through an [example CodePen][example] with step-by-step commentary.
 As always, we need to include the A-Frame script.
 
 ```js
-<script src="https://aframe.io/releases/0.7.0/aframe.min.js"></script>
+<script src="https://aframe.io/releases/0.8.0/aframe.min.js"></script>
 ```
 
 Next, we define any components and shaders we need after the A-Frame

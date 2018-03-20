@@ -13,8 +13,8 @@ registerPrimitive('a-sky', utils.extendDeep({}, getMeshMixin(), {
     },
     material: {
       color: '#FFF',
-      shader: 'flat',
       side: 'back',
+      shader: 'flat',
       npot: true
     },
     scale: '-1 1 1'

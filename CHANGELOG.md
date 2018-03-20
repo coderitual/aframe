@@ -1,3 +1,90 @@
+## 0.8.0 (March 9, 2018)
+
+Performance improvements.
+
+### Major Changes
+
+- Updated to three.js r90.
+- Ability to update three.js Object3D position, rotation, scale, and visible directly while being in sync with A-Frame. (#3245)
+- ~~Bubble `object3dset` and `object3dremove` events no longer bubble. (#3220)~~
+- Raycaster intersection and cleared events now emitted once per event, not on every frame. (#3126)
+- Remove VREffect / VRControls for three.js WebGLRenderer API. VR camera pose is managed by three.js. (#3152, #3327)
+- Removed geometry.mergeTo. (#3191)
+- Removed state mixins. addState and removeState event detail modified to be the state name, not object. (#3171)
+- Removed Scene.reload() (#2239)
+
+### Deprecations
+
+- Entity.getOrCreateObject3D. (#3222)
+
+### Fixes
+
+- Clone object type properties into oldData to fix update method not called on referenced objects. (#3409)
+- Fix matrix composition when updating pose for controllers. (#3407)
+- Fix component update getting overridden by mixin due to not passing in the whole attrValue into buildData. (#3302)
+- Remove a-canvas z-index. (#3391)
+- Fix parameters passed to the onButtonEvent function for Windows MR. (#3372)
+- Fix black texture issue with a-sky and a-videosphere components with three r89. (#3370)
+- Fix material array handling in shadow component. (#3348)
+- Postpone the resize operation in iOS to ensure that the window size matches the viewport on orientation changes. (fix #3282) (#3306)
+- Fix utils.entity.getComponentPropertyPath if defaultLightsEnabled not defined
+- Look-controls don't read HMD position if no headset connected. (#3286)
+- Fix raycaster direction. (#3239)
+- Fix raycaster line update that wasn't triggered anymore. (#3124)
+- Fix data from dom not parsed if skipTypeChecking. (#3153)
+- Clone default array property type. (#3095)
+- Fix Gear VR buttons highlighting. (#3103)
+- Do not resize the canvas while presenting on mobile (#3080)
+- Flipped the sign on sampleUV.x in the portal shader used by the link component (#3079)
+
+### Enhancements
+
+- Add spectator camera mode and spectator scene component. (#3280)
+- Support Pointer Lock API. (#3341)
+- Allow mixin composition. (#3305)
+- Add a background component for better performant plain color backgrounds than `<a-sky>`. (#2908)
+- Use MutationObserver and object3dset and object3dremove events to refresh raycaster list. (#3070)
+- Allow specify container for pool component. (#3392)
+- Expose raycaster.intersections array. (#3289)
+- Remove cameraRig on setupDefaultCamera. (#3364)
+- Add metalnessMap and roughnessMap. (#2722)
+- Add spectator camera mode to the camera component and spectator scene component. (#3280)
+- Add transparent flag to be able to define transparent backgrounds. (#3320)
+- Improve function names in debugger call stacks. (#3310)
+- Allow removal of mixed-in components. (#3275)
+- Add xOffset option to allow text padding. (#3269)
+- Allow disable shadow map auto update, fix shadow system init. (#3214)
+- Use component event handlers insted of bound a-scene methods. (#3213)
+- Support sources in video. (#3176)
+- Make camera system aware of mixins. (#3196)
+- Remove everGotGamepadEvent flag and gamepadconnected / gamepaddisconnected. (#3189)
+- Register cursor event listeners on canvas, not window. (#3179)
+- Do not update style.width and style.height on renderer resize to not override styles applied externally. (#3184)
+- Factor out onButtonEvent method from controllers. (#3169)
+- Add raycaster.enabled property to toggle tick handler. (#3148)
+- Have camera call enter VR handler if scene already entered VR with display activate. (#3149)
+- String-trim primitive attribute values. (#3145)
+- Add customizeable colors to link portal and title. (#3106)
+- Adapt cursor onMouseMove to also accept touchmove events. (#3143)
+
+### Performance
+
+- Save array creations on each raycaster update. (#3317)
+- Optimize event emit. (#3308)
+- Throttle updateControllerList while keeping getGamepads call. (#3112)
+- Get rid of some string split operations. (#3316)
+- Default the raycaster interval/throttle to 0. (#3293)
+- Have getAttribute(visible) return object3D.visible directly. (#3283)
+- Optimize aframe.utils.diff. (#3271)
+- Raycaster fixes and performance improvements. (#3250)
+- Remove garbage for addBehavior/removeBehavior. (#3217)
+- Reduce garbage in axismove in tracked-controls. (#3185)
+- Prevent component leakage in updateComponents (#3212)
+- Cache font image textures for text component (#3158)
+- Remove two array allocations per deepEqual call (#3115)
+- Reduce Object.keys usage in core/schema (#3117)
+- Save object allocation on look-controls.calculateDeltaRotation (#3116)
+
 ## 0.7.1 (Oct 18, 2017)
 
 This release contains the same functionality as 0.7.0. This is a version bump

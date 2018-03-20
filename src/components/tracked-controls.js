@@ -87,6 +87,12 @@ module.exports.Component = registerComponent('tracked-controls', {
     this.controller = controller;
   },
 
+  /**
+   * Applies an artificial arm model to simulate elbow to wrist positioning
+   * based on the orientation of the controller.
+   *
+   * @param {object} controllerPosition - Existing vector to update with controller position.
+   */
   applyArmModel: function (controllerPosition) {
     // Use controllerPosition and deltaControllerPosition to avoid creating variables.
     var controller = this.controller;
@@ -152,25 +158,30 @@ module.exports.Component = registerComponent('tracked-controls', {
     // Compose pose from Gamepad.
     pose = controller.pose;
 
-    if (pose.position !== null) {
+    if (pose.position) {
       object3D.position.fromArray(pose.position);
     } else {
       // Controller not 6DOF, apply arm model.
       if (this.data.armModel) { this.applyArmModel(object3D.position); }
     }
 
-    if (pose.orientation !== null) {
+    if (pose.orientation) {
       object3D.quaternion.fromArray(pose.orientation);
     }
 
     // Apply transforms, if 6DOF and in VR.
-    if (vrDisplay) {
+    if (vrDisplay && pose.position) {
       standingMatrix = this.el.sceneEl.renderer.vr.getStandingMatrix();
       object3D.matrixAutoUpdate = false;
       object3D.matrix.compose(object3D.position, object3D.quaternion, object3D.scale);
       object3D.matrix.multiplyMatrices(standingMatrix, object3D.matrix);
-      object3D.matrixWorldNeedsUpdate = true;
+      object3D.matrix.decompose(object3D.position, object3D.quaternion, object3D.scale);
     }
+
+    object3D.rotateZ(this.data.rotationOffset * THREE.Math.DEG2RAD);
+
+    object3D.updateMatrix();
+    object3D.matrixWorldNeedsUpdate = true;
   },
 
   /**
@@ -205,8 +216,8 @@ module.exports.Component = registerComponent('tracked-controls', {
    * @returns {boolean} Whether button has changed in any way.
    */
   handleButton: function (id, buttonState) {
-    var changed = this.handlePress(id, buttonState) ||
-                  this.handleTouch(id, buttonState) ||
+    var changed = this.handlePress(id, buttonState) |
+                  this.handleTouch(id, buttonState) |
                   this.handleValue(id, buttonState);
     if (!changed) { return false; }
     this.el.emit('buttonchanged', {id: id, state: buttonState});

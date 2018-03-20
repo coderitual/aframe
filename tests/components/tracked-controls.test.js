@@ -8,14 +8,16 @@ suite('tracked-controls', function () {
   var controller;
   var el;
   var system;
+  var standingMatrix = new THREE.Matrix4();
 
   setup(function (done) {
+    standingMatrix.identity();
     el = entityFactory();
     el.setAttribute('position', '');
     el.setAttribute('tracked-controls', '');
     el.addEventListener('loaded', function () {
       el.parentNode.renderer.vr.getStandingMatrix = function () {
-        return new THREE.Matrix4();
+        return standingMatrix;
       };
       component = el.components['tracked-controls'];
       system = component.system;
@@ -39,59 +41,59 @@ suite('tracked-controls', function () {
 
   suite('updateGamepad', function () {
     test('matches controller with same id', function () {
-      assert.notOk(component.controller);
+      assert.strictEqual(component.controller, undefined);
       el.setAttribute('tracked-controls', 'id', 'OpenVR Gamepad');
       component.tick();
       assert.equal(component.controller, controller);
     });
 
     test('matches controller with prefix', function () {
-      assert.notOk(component.controller);
+      assert.strictEqual(component.controller, undefined);
       el.setAttribute('tracked-controls', 'idPrefix', 'OpenVR');
       component.tick();
       assert.equal(component.controller, controller);
     });
 
     test('does not match controller by default', function () {
-      assert.notOk(component.controller);
+      assert.strictEqual(component.controller, undefined);
       el.setAttribute('tracked-controls', {}, true);
       component.tick();
-      assert.notOk(component.controller);
+      assert.strictEqual(component.controller, undefined);
     });
 
     test('does not match controller with different id', function () {
-      assert.notOk(component.controller);
+      assert.strictEqual(component.controller, undefined);
       el.setAttribute('tracked-controls', 'id', 'foo');
       component.tick();
-      assert.notOk(component.controller);
+      assert.strictEqual(component.controller, undefined);
     });
 
     test('does not match controller with different prefix', function () {
-      assert.notOk(component.controller);
+      assert.strictEqual(component.controller, undefined);
       el.setAttribute('tracked-controls', 'idPrefix', 'foo');
       component.tick();
-      assert.notOk(component.controller);
+      assert.strictEqual(component.controller, undefined);
     });
 
     test('set controller to undefined if controller not found', function () {
-      assert.notOk(component.controller);
+      assert.strictEqual(component.controller, undefined);
       el.setAttribute('tracked-controls', 'id', 'OpenVR Gamepad');
       component.tick();
       assert.equal(component.controller, controller);
       system.controllers = [];
       component.tick();
-      assert.equal(component.controller, undefined);
+      assert.strictEqual(component.controller, undefined);
     });
   });
 
   suite('tick', function () {
     test('updates pose and buttons even if mesh is not defined', function () {
-      var updateButtonsSpy = this.sinon.spy(component, 'updateButtons');
-      var updatePoseSpy = this.sinon.spy(component, 'updatePose');
+      var updateButtonsSpy = sinon.spy(component, 'updateButtons');
+      var updatePoseSpy = sinon.spy(component, 'updatePose');
       assert.notOk(el.getObject3D('mesh'));
       component.tick();
-      assert.ok(updatePoseSpy.called);
-      assert.ok(updateButtonsSpy.called);
+      sinon.assert.calledOnce(updatePoseSpy);
+      sinon.assert.calledOnce(updateButtonsSpy);
     });
   });
 
@@ -130,6 +132,23 @@ suite('tracked-controls', function () {
       component.tick();
       assertVec3(el.getAttribute('position'), [2, 4, 6]);
     });
+
+    test('applies standing matrix transform', function () {
+      standingMatrix.makeTranslation(1, 0.5, -3);
+      controller.pose.position = [1, 2, 3];
+      el.sceneEl.systems['tracked-controls'].vrDisplay = true;
+      component.tick();
+      assertVec3(el.getAttribute('position'), [2, 2.5, 0]);
+    });
+
+    test('does not apply standing matrix transform for 3DoF', function () {
+      standingMatrix.makeTranslation(1, 0.5, -3);
+      controller.pose.position = null;
+      el.sceneEl.systems['tracked-controls'].vrDisplay = true;
+      component.tick();
+      // assert position after default camera position and arm model are applied
+      assertVec3CloseTo(el.getAttribute('position'), [0.28, 1.12, -0.32], 0.01);
+    });
   });
 
   suite('updatePose (rotation)', function () {
@@ -163,21 +182,27 @@ suite('tracked-controls', function () {
       controller.pose.orientation = toQuaternion(PI, PI / 2, PI / 3);
       el.sceneEl.systems['tracked-controls'].vrDisplay = true;
       component.tick();
-      component.tick();
       assertQuaternion(el.object3D.quaternion, controller.pose.orientation);
+    });
+
+    test('applies rotation Z-offset', function () {
+      el.setAttribute('tracked-controls', 'rotationOffset', 10);
+      component.tick();
+      assertVec3(el.getAttribute('rotation'), [0, 0, 10]);
+      assertMatrix4(el.object3D.matrix, new THREE.Matrix4().makeRotationZ(10 * THREE.Math.DEG2RAD));
     });
   });
 
   suite('handleAxes', function () {
     test('does not emit on initial state', function () {
-      const emitSpy = this.sinon.spy(el, 'emit');
+      const emitSpy = sinon.spy(el, 'emit');
       component.tick();
       assert.notOk(component.handleAxes());
       sinon.assert.notCalled(emitSpy);
     });
 
     test('emits axismove on first touch', function () {
-      const emitSpy = this.sinon.spy(el, 'emit');
+      const emitSpy = sinon.spy(el, 'emit');
       controller.axes = [0.5, 0.5, 0.5];
       assert.deepEqual(component.axis, [0, 0, 0]);
       component.tick();
@@ -192,7 +217,7 @@ suite('tracked-controls', function () {
       component.tick();
       assert.deepEqual(component.axis, [0.5, 0.5, 0.5]);
 
-      const emitSpy = this.sinon.spy(el, 'emit');
+      const emitSpy = sinon.spy(el, 'emit');
       controller.axes = [1, 1, 1];
       component.tick();
       const emitCall = emitSpy.getCalls()[0];
@@ -206,7 +231,7 @@ suite('tracked-controls', function () {
       component.tick();
       assert.deepEqual(component.axis, [0.5, 0.5, 0.5]);
 
-      const emitSpy = this.sinon.spy(el, 'emit');
+      const emitSpy = sinon.spy(el, 'emit');
       controller.axes = [1, 0.5, 0.5];
       component.tick();
       const emitCall = emitSpy.getCalls()[0];
@@ -218,13 +243,13 @@ suite('tracked-controls', function () {
 
   suite('handleButton', function () {
     test('does not emit if button not pressed', function () {
-      const emitSpy = this.sinon.spy(el, 'emit');
+      const emitSpy = sinon.spy(el, 'emit');
       component.tick();
       sinon.assert.notCalled(emitSpy);
     });
 
     test('emits buttonchanged if button pressed', function () {
-      const emitSpy = this.sinon.spy(el, 'emit');
+      const emitSpy = sinon.spy(el, 'emit');
       controller.buttons[0].pressed = true;
       component.tick();
 
@@ -232,14 +257,11 @@ suite('tracked-controls', function () {
         call => call.args[0] === 'buttonchanged');
       assert.equal(emitChangedCalls.length, 1);
 
-      const emitCall = emitChangedCalls[0];
-      assert.equal(emitCall.args[0], 'buttonchanged');
-      assert.deepEqual(emitCall.args[1].id, 0);
-      assert.deepEqual(emitCall.args[1].state, controller.buttons[0]);
+      assertButtonEvent(emitChangedCalls[0], 'buttonchanged', 0, controller.buttons[0]);
     });
 
     test('emits buttonchanged if button touched', function () {
-      const emitSpy = this.sinon.spy(el, 'emit');
+      const emitSpy = sinon.spy(el, 'emit');
       controller.buttons[0].touched = true;
       component.tick();
 
@@ -247,23 +269,142 @@ suite('tracked-controls', function () {
         call => call.args[0] === 'buttonchanged');
       assert.equal(emitChangedCalls.length, 1);
 
-      const emitCall = emitChangedCalls[0];
-      assert.equal(emitCall.args[0], 'buttonchanged');
-      assert.deepEqual(emitCall.args[1].id, 0);
-      assert.deepEqual(emitCall.args[1].state, controller.buttons[0]);
+      assertButtonEvent(emitChangedCalls[0], 'buttonchanged', 0, controller.buttons[0]);
+    });
+
+    test('emits buttonchanged if value changed', function () {
+      const emitSpy = sinon.spy(el, 'emit');
+      controller.buttons[0].value = 0.5;
+      component.tick();
+
+      const emitChangedCalls = emitSpy.getCalls().filter(
+        call => call.args[0] === 'buttonchanged');
+      assert.equal(emitChangedCalls.length, 1);
+
+      assertButtonEvent(emitChangedCalls[0], 'buttonchanged', 0, controller.buttons[0]);
+    });
+
+    test('emits independent streams for buttondown, touchstart and buttonchanged', function () {
+      const emitSpy = sinon.spy(el, 'emit');
+      controller.buttons[0].pressed = true;
+      controller.buttons[0].touched = true;
+      component.tick();
+
+      // We should emit button, touch and changed calls.
+      assert.equal(emitSpy.getCalls().length, 3);
+      const emitButtonCalls = emitSpy.getCalls().filter(
+        call => call.args[0] === 'buttondown');
+      assert.equal(emitButtonCalls.length, 1);
+
+      const emitTouchCalls = emitSpy.getCalls().filter(
+        call => call.args[0] === 'touchstart');
+      assert.equal(emitTouchCalls.length, 1);
+
+      const emitChangedCalls = emitSpy.getCalls().filter(
+        call => call.args[0] === 'buttonchanged');
+      assert.equal(emitChangedCalls.length, 1);
+
+      assertButtonEvent(emitButtonCalls[0], 'buttondown', 0, controller.buttons[0]);
+      assertButtonEvent(emitTouchCalls[0], 'touchstart', 0, controller.buttons[0]);
+      assertButtonEvent(emitChangedCalls[0], 'buttonchanged', 0, controller.buttons[0]);
+    });
+
+    test('emits independent streams for buttonup, touchend and buttonchanged', function () {
+      const emitSpy = sinon.spy(el, 'emit');
+      component.buttonStates[0] = {pressed: true, touched: true, value: 1};
+      controller.buttons[0].pressed = false;
+      controller.buttons[0].touched = false;
+      controller.buttons[0].value = 0;
+      component.tick();
+
+      // Filter down to just our expected events for verification.
+      const emitButtonCalls = emitSpy.getCalls().filter(call => call.args[0] === 'buttonup');
+      assert.equal(emitButtonCalls.length, 1);
+
+      const emitTouchCalls = emitSpy.getCalls().filter(call => call.args[0] === 'touchend');
+      assert.equal(emitTouchCalls.length, 1);
+
+      const emitChangedCalls = emitSpy.getCalls().filter(call => call.args[0] === 'buttonchanged');
+      assert.equal(emitChangedCalls.length, 1);
+
+      // Verify each of the 3 events has the correct event name and state.
+      assertButtonEvent(emitButtonCalls[0], 'buttonup', 0, controller.buttons[0]);
+      assertButtonEvent(emitTouchCalls[0], 'touchend', 0, controller.buttons[0]);
+      assertButtonEvent(emitChangedCalls[0], 'buttonchanged', 0, controller.buttons[0]);
+    });
+
+    test('emits correct event stream for spaced out interaction.', function () {
+      // First round, verify we only see a touchstart and buttonchanged
+      let emitSpy = sinon.spy(el, 'emit');
+      controller.buttons[0].touched = true;
+      component.tick();
+
+      assertEventStream(emitSpy.getCalls(), ['buttonchanged', 'touchstart'], ['buttondown', 'buttonup', 'touchend']);
+      emitSpy.restore();
+
+      // Second round, verify we only see a buttondown and buttonchanged since pressed state isn't changing.
+      emitSpy = sinon.spy(el, 'emit');
+      controller.buttons[0].pressed = true;
+      component.tick();
+
+      assertEventStream(emitSpy.getCalls(), ['buttonchanged', 'buttondown'], ['buttonup', 'touchend', 'touchstart']);
+      emitSpy.restore();
+
+      // Third round, verify we only see a buttonup and button changed when we release the button.
+      emitSpy = sinon.spy(el, 'emit');
+      controller.buttons[0].pressed = false;
+      component.tick();
+
+      assertEventStream(emitSpy.getCalls(), ['buttonchanged', 'buttonup'], ['buttondown', 'touchend', 'touchstart']);
+      emitSpy.restore();
+
+      // Fourth round, verify we only see a touchend and button changed when we lift our touch.
+      emitSpy = sinon.spy(el, 'emit');
+      controller.buttons[0].touched = false;
+      component.tick();
+
+      assertEventStream(emitSpy.getCalls(), ['buttonchanged', 'touchend'], ['buttondown', 'buttonup', 'touchstart']);
+      emitSpy.restore();
+    });
+
+    test('emits correct event states on a fast click', function () {
+      // First round, verify we see all activation events
+      let emitSpy = sinon.spy(el, 'emit');
+      controller.buttons[0].pressed = true;
+      controller.buttons[0].touched = true;
+      controller.buttons[0].value = 1;
+      component.tick();
+
+      assertEventStream(emitSpy.getCalls(), ['buttonchanged', 'buttondown', 'touchstart'], ['buttonup', 'touchend']);
+      emitSpy.restore();
+
+      // Second round, verify we see all deactivation events
+      emitSpy = sinon.spy(el, 'emit');
+      controller.buttons[0].pressed = false;
+      controller.buttons[0].touched = false;
+      controller.buttons[0].value = 0;
+      component.tick();
+
+      assertEventStream(emitSpy.getCalls(), ['buttonchanged', 'buttonup', 'touchend'], ['buttondown', 'touchstart']);
+      emitSpy.restore();
+
+      // Finally verify there are no events backed up because of bad carryover state.
+      emitSpy = sinon.spy(el, 'emit');
+      component.tick();
+      sinon.assert.notCalled(emitSpy);
     });
   });
 
   suite('handlePress', function () {
     test('does not emit anything if button not pressed', function () {
-      const emitSpy = this.sinon.spy(el, 'emit');
+      const emitSpy = sinon.spy(el, 'emit');
       component.tick();
       sinon.assert.notCalled(emitSpy);
       assert.notOk(component.handlePress(0, {pressed: false, touched: false, value: 0}));
     });
 
     test('emits buttondown if button pressed', function () {
-      const emitSpy = this.sinon.spy(el, 'emit');
+      const emitSpy = sinon.spy(el, 'emit');
       controller.buttons[0].pressed = true;
       component.tick();
 
@@ -271,14 +412,11 @@ suite('tracked-controls', function () {
         call => call.args[0] === 'buttondown');
       assert.equal(emitDownCalls.length, 1);
 
-      const emitCall = emitDownCalls[0];
-      assert.equal(emitCall.args[0], 'buttondown');
-      assert.deepEqual(emitCall.args[1].id, 0);
-      assert.deepEqual(emitCall.args[1].state, controller.buttons[0]);
+      assertButtonEvent(emitDownCalls[0], 'buttondown', 0, controller.buttons[0]);
     });
 
     test('emits buttonup if button released', function () {
-      const emitSpy = this.sinon.spy(el, 'emit');
+      const emitSpy = sinon.spy(el, 'emit');
       component.buttonStates[1] = {pressed: true, touched: false, value: 1};
       controller.buttons[1].pressed = false;
       controller.buttons[1].value = 0;
@@ -288,14 +426,11 @@ suite('tracked-controls', function () {
         call => call.args[0] === 'buttonup');
       assert.equal(emitUpCalls.length, 1);
 
-      const emitCall = emitUpCalls[0];
-      assert.equal(emitCall.args[0], 'buttonup');
-      assert.deepEqual(emitCall.args[1].id, 1);
-      assert.deepEqual(emitCall.args[1].state, controller.buttons[1]);
+      assertButtonEvent(emitUpCalls[0], 'buttonup', 1, controller.buttons[1]);
     });
 
     test('does not emit buttonup if button pressed', function () {
-      const emitSpy = this.sinon.spy(el, 'emit');
+      const emitSpy = sinon.spy(el, 'emit');
       controller.buttons[0].pressed = true;
       component.tick();
       const emitUpCalls = emitSpy.getCalls().filter(
@@ -304,7 +439,7 @@ suite('tracked-controls', function () {
     });
 
     test('does not emit buttondown if button released', function () {
-      const emitSpy = this.sinon.spy(el, 'emit');
+      const emitSpy = sinon.spy(el, 'emit');
       component.buttonStates[1] = {pressed: true, touched: false, value: 1};
       controller.buttons[1].pressed = false;
       controller.buttons[1].value = 0;
@@ -318,14 +453,14 @@ suite('tracked-controls', function () {
 
   suite('handleTouch', function () {
     test('does not do anything if button not touched', function () {
-      const emitSpy = this.sinon.spy(el, 'emit');
+      const emitSpy = sinon.spy(el, 'emit');
       component.tick();
       sinon.assert.notCalled(emitSpy);
       assert.notOk(component.handleTouch(0, {pressed: false, touched: false, value: 0}));
     });
 
     test('emits touchstart if button touched', function () {
-      const emitSpy = this.sinon.spy(el, 'emit');
+      const emitSpy = sinon.spy(el, 'emit');
       controller.buttons[0].touched = true;
       component.tick();
 
@@ -333,14 +468,11 @@ suite('tracked-controls', function () {
         call => call.args[0] === 'touchstart');
       assert.equal(emitStartCalls.length, 1);
 
-      const emitCall = emitStartCalls[0];
-      assert.equal(emitCall.args[0], 'touchstart');
-      assert.deepEqual(emitCall.args[1].id, 0);
-      assert.deepEqual(emitCall.args[1].state, controller.buttons[0]);
+      assertButtonEvent(emitStartCalls[0], 'touchstart', 0, controller.buttons[0]);
     });
 
     test('emits touchend if button no longer touched', function () {
-      const emitSpy = this.sinon.spy(el, 'emit');
+      const emitSpy = sinon.spy(el, 'emit');
       component.buttonStates[1] = {pressed: false, touched: true, value: 1};
       controller.buttons[1].touched = false;
       controller.buttons[1].value = 0;
@@ -350,10 +482,7 @@ suite('tracked-controls', function () {
         call => call.args[0] === 'touchend');
       assert.equal(emitEndCalls.length, 1);
 
-      const emitCall = emitEndCalls[0];
-      assert.equal(emitCall.args[0], 'touchend');
-      assert.deepEqual(emitCall.args[1].id, 1);
-      assert.deepEqual(emitCall.args[1].state, controller.buttons[1]);
+      assertButtonEvent(emitEndCalls[0], 'touchend', 1, controller.buttons[1]);
     });
   });
 
@@ -379,17 +508,17 @@ suite('tracked-controls', function () {
     });
 
     test('if armModel false, do not apply', function () {
-      var applyArmModelSpy = this.sinon.spy(component, 'applyArmModel');
+      var applyArmModelSpy = sinon.spy(component, 'applyArmModel');
       component.data.armModel = false;
       component.tick();
-      assert.notOk(applyArmModelSpy.called);
+      sinon.assert.notCalled(applyArmModelSpy);
     });
 
     test('if armModel true, apply', function () {
-      var applyArmModelSpy = this.sinon.spy(component, 'applyArmModel');
+      var applyArmModelSpy = sinon.spy(component, 'applyArmModel');
       component.data.armModel = true;
       component.tick();
-      assert.ok(applyArmModelSpy.called);
+      sinon.assert.calledOnce(applyArmModelSpy);
     });
 
     teardown(function () {
@@ -398,10 +527,22 @@ suite('tracked-controls', function () {
   });
 });
 
+function assertMatrix4 (matrixA, matrixB) {
+  assert.ok(matrixA.equals(matrixB), `\n${matrixA.elements}\n${matrixB.elements}`);
+}
+
+function assertVec3CloseTo (vec3, arr, delta) {
+  var debugOutput = `${[vec3.x, vec3.y, vec3.z]} is not close to ${arr}`;
+  assert.closeTo(vec3.x, arr[0], delta, debugOutput);
+  assert.closeTo(vec3.y, arr[1], delta, debugOutput);
+  assert.closeTo(vec3.z, arr[2], delta, debugOutput);
+}
+
 function assertVec3 (vec3, arr) {
-  assert.equal(vec3.x, arr[0]);
-  assert.equal(vec3.y, arr[1]);
-  assert.equal(vec3.z, arr[2]);
+  var debugOutput = `${[vec3.x, vec3.y, vec3.z]} does not equal ${arr}`;
+  assert.equal(vec3.x, arr[0], debugOutput);
+  assert.equal(vec3.y, arr[1], debugOutput);
+  assert.equal(vec3.z, arr[2], debugOutput);
 }
 
 function assertQuaternion (quaternion, arr) {
@@ -426,4 +567,44 @@ function toQuaternion (x, y, z) {
     quaternion.setFromEuler(euler);
     return quaternion.toArray();
   })();
+}
+
+/**
+ * Given a button event emit call that has been spied, verify all of the
+ * data matches.
+ *
+ * @param {object} eventCall - The spied call to emit.
+ * @param {string} eventName - The expected name of the event.
+ * @param {number} eventId - The button id firing the event.
+ * @param {object} eventState - The full event state.
+ */
+function assertButtonEvent (eventCall, eventName, eventId, eventState) {
+  assert.equal(eventCall.args[0], eventName);
+  assert.equal(eventCall.args[1].id, eventId);
+  assert.deepEqual(eventCall.args[1].state, eventState);
+}
+
+/**
+ * Verifies a stream of events includes and excludes the expected event names.
+ *
+ * @param {Array} eventCalls - The spied calls to emit for all events.
+ * @param {Array} expectedEvents - The expected events in the stream. Must be present.
+ * @param {Array} excludedEvents - Unexpected events in the stream. Must be excluded.
+ */
+function assertEventStream (eventCalls, expectedEvents, excludedEvents) {
+  for (var eventCall of eventCalls) {
+    const expectedIndex = expectedEvents.indexOf(eventCall.args[0]);
+    const discludedIndex = excludedEvents.indexOf(eventCall.args[0]);
+
+    // Ensure we don't have a discluded event.
+    assert.equal(discludedIndex, -1);
+
+    // If we found an expected event, then move it to the discluded list
+    // since we should only see expected events once.
+    if (expectedIndex >= 0) {
+      excludedEvents.push(expectedEvents.splice(expectedIndex, 1)[0]);
+    }
+  }
+
+  assert.equal(expectedEvents.length, 0);
 }

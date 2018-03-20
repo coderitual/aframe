@@ -28,7 +28,7 @@ free. Alternatively, create an `.html` file and include A-Frame in the `<head>`:
 ```html
 <html>
   <head>
-    <script src="https://aframe.io/releases/0.7.1/aframe.min.js"></script>
+    <script src="https://aframe.io/releases/0.8.0/aframe.min.js"></script>
   </head>
   <body>
     <a-scene>
@@ -146,13 +146,6 @@ and fly around to peek under the hood!
 
 ![Inspector](https://cloud.githubusercontent.com/assets/674727/25377018/27be9cce-295b-11e7-9098-3e85ac1fe172.gif)
 
-[registry]: https://aframe.io/aframe-registry
-
-:package: **Registry**: Take powerful components that developers have published
-and plug them in straight from HTML. Similar to the Unity Asset Store, [the
-A-Frame Registry][registry] collects and curates these components for easy
-discovery.
-
 [augmented reality]: https://github.com/jeromeetienne/AR.js#augmented-reality-for-the-web-in-less-than-10-lines-of-html
 [motion capture]: https://github.com/dmarcos/aframe-motion-capture
 [mountains]: https://github.com/ngokevin/kframe/tree/master/components/mountain/
@@ -179,7 +172,7 @@ A-Frame:
 1. For inspiration, check out what other people have built with A-Frame on the
 [Weekly Blog](https://aframe.io/blog/). Users of A-Frame have included The
 Washington Post, Amnesty International, Google, Al Jazeera, NPR, Shopify,
-iStaging, and IDEO.
+iStaging, IDEO, and [Supermedium](https://supermedium.com).
 
 2. Read through the basic documentation and guides to get a grasp.
 
