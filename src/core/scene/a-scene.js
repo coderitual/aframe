@@ -120,7 +120,7 @@ module.exports.AScene = registerElement('a-scene', {
           // after an orientation change. The window size is correct if the operation
           // is postponed a few milliseconds.
           // self.resize can be called directly once the bug above is fixed.
-          if (this.isIOS) {
+          if (self.isIOS) {
             setTimeout(resize, 100);
           } else {
             resize();
@@ -515,9 +515,13 @@ module.exports.AScene = registerElement('a-scene', {
         var rendererAttrString;
         var rendererConfig;
 
-        rendererConfig = {alpha: true, antialias: !isMobile, canvas: this.canvas};
+        rendererConfig = {alpha: true, antialias: !isMobile, canvas: this.canvas, logarithmicDepthBuffer: false};
         if (this.hasAttribute('antialias')) {
           rendererConfig.antialias = this.getAttribute('antialias') === 'true';
+        }
+
+        if (this.hasAttribute('logarithmicDepthBuffer')) {
+          rendererConfig.logarithmicDepthBuffer = this.getAttribute('logarithmicDepthBuffer') === 'true';
         }
 
         this.maxCanvasSize = {height: 1920, width: 1920};
@@ -709,7 +713,7 @@ function getMaxSize (maxSize, isVR) {
   var size;
   var pixelRatio = window.devicePixelRatio;
 
-  size = {height: window.innerHeight, width: window.innerWidth};
+  size = {height: document.body.offsetHeight, width: document.body.offsetWidth};
   if (!maxSize || isVR || (maxSize.width === -1 && maxSize.height === -1)) {
     return size;
   }
